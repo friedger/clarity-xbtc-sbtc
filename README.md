@@ -54,12 +54,51 @@ Swaps xBTC tokens for sBTC tokens at a 1:1 ratio.
 | `u500` | Insufficient xBTC balance |
 | `u501` | Insufficient sBTC balance in contract |
 
+## Web Application
+
+A user-friendly web interface is provided to interact with the swap contract. Users can connect their Stacks wallet and swap xBTC for sBTC with just a few clicks.
+
+### Running the Web App
+
+Install dependencies:
+```bash
+pnpm install
+```
+
+Start the development server:
+```bash
+pnpm dev
+```
+
+The app will open at `http://localhost:3000`
+
+Build for production:
+```bash
+pnpm build
+```
+
+### Features
+
+- 🔐 **Wallet Connection**: Connect using Hiro Wallet or other Stacks wallets
+- 💰 **Balance Display**: View your xBTC balance and contract's sBTC balance
+- 🔄 **One-Click Swap**: Simple interface to swap xBTC to sBTC
+- ✅ **Post Conditions**: Transactions include safety checks to protect your assets
+- 📱 **Responsive Design**: Works on desktop and mobile devices
+
+### Configuration
+
+The web app is configured for testnet by default. To switch to mainnet:
+
+1. Open `public/app.js`
+2. Change `const IS_MAINNET = false;` to `const IS_MAINNET = true;`
+3. Update the `SWAP_CONTRACT` address to the mainnet deployment
+
 ## Development
 
 ### Prerequisites
 
 - [Clarinet](https://github.com/hirosystems/clarinet) - Clarity smart contract development tool
-- [Node.js](https://nodejs.org/) and pnpm - For running tests
+- [Node.js](https://nodejs.org/) and pnpm - For running tests and web app
 
 ### Testing
 
@@ -78,16 +117,31 @@ pnpm test
 ```
 ├── contracts/
 │   └── xbtc-sbtc-swap.clar       # Main swap contract
+├── public/
+│   ├── index.html                # Web app UI
+│   ├── app.js                    # Wallet integration & contract calls
+│   └── styles.css                # Styling
 ├── tests/
 │   └── xbtc-sbtc-swap.test.ts    # Contract tests
 ├── settings/
 │   ├── Devnet.toml
 │   ├── Mainnet.toml
 │   └── Testnet.toml
-└── Clarinet.toml                  # Clarinet configuration
+├── Clarinet.toml                  # Clarinet configuration
+└── vite.config.mjs               # Vite configuration for web app
 ```
 
-## Usage Example
+## Usage
+
+### Via Web App
+
+1. Visit the web app and click "Connect Wallet"
+2. Approve the connection in your Stacks wallet
+3. Enter the amount of xBTC you want to swap
+4. Click "Swap xBTC → sBTC"
+5. Confirm the transaction in your wallet
+
+### Via Contract Call
 
 To swap 1000 xBTC for sBTC:
 

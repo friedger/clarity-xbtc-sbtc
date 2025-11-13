@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>xBTC to sBTC Swap</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 xBTC to sBTC Swap</h1>
+            <p class="subtitle">Swap your xBTC tokens for sBTC at a 1:1 ratio</p>
+        </header>
+
+        <div class="card">
+            <div id="wallet-section">
+                <button id="connect-wallet-btn" class="btn btn-primary">
+                    Connect Wallet
+                </button>
+                <div id="wallet-info" class="wallet-info hidden">
+                    <p><strong>Connected:</strong> <span id="wallet-address"></span></p>
+                    <button id="disconnect-btn" class="btn btn-secondary">Disconnect</button>
+                </div>
+            </div>
+
+            <div id="swap-section" class="hidden">
+                <div class="balance-info">
+                    <div class="balance-item">
+                        <label>Your xBTC Balance:</label>
+                        <span id="xbtc-balance" class="balance-value">-</span>
+                    </div>
+                    <div class="balance-item">
+                        <label>Contract sBTC Balance:</label>
+                        <span id="sbtc-balance" class="balance-value">-</span>
+                    </div>
+                </div>
+
+                <div class="swap-form">
+                    <label for="swap-amount">Amount to Swap:</label>
+                    <div class="input-group">
+                        <input 
+                            type="number" 
+                            id="swap-amount" 
+                            placeholder="0.00000000"
+                            step="0.00000001"
+                            min="0"
+                        >
+                        <span class="input-suffix">xBTC</span>
+                    </div>
+                    <p class="helper-text">You will receive the same amount in sBTC</p>
+                    
+                    <button id="swap-btn" class="btn btn-primary btn-large">
+                        Swap xBTC → sBTC
+                    </button>
+                </div>
+
+                <button id="refresh-balances-btn" class="btn btn-secondary">
+                    🔄 Refresh Balances
+                </button>
+            </div>
+        </div>
+
+        <div id="status-message" class="status-message hidden"></div>
+
+        <div class="info-section">
+            <h3>ℹ️ Important Information</h3>
+            <ul>
+                <li>This is a <strong>one-way swap</strong> - you cannot swap sBTC back to xBTC</li>
+                <li>The swap ratio is <strong>1:1</strong> (1 xBTC = 1 sBTC)</li>
+                <li>Make sure you have sufficient xBTC balance</li>
+                <li>The contract must have sufficient sBTC to complete the swap</li>
+                <li>Transaction fees apply (paid in STX)</li>
+            </ul>
+        </div>
+
+        <footer>
+            <p>
+                <a href="https://github.com/friedger/clarity-xbtx-sbtc" target="_blank">
+                    View Contract on GitHub
+                </a>
+            </p>
+        </footer>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
