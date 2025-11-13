@@ -18,6 +18,8 @@
   )
 )
 
+;; private functions
+
 (define-private (transfer-sbtc (amount uint))
   (let ((sbtc-receiver tx-sender))
     (as-contract?

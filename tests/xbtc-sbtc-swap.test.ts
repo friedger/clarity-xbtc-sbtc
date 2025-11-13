@@ -65,8 +65,6 @@ describe("xBTC-sBTC Swap Contract Tests", () => {
     expect(response.result).toBeOk(Cl.bool(true));
     expect(response.events).toHaveLength(3);
 
-    console.log(response.events);
-
     const sbtcTransferEvent = response.events[0];
     expect(sbtcTransferEvent).toMatchObject({
       event: "ft_transfer_event",
