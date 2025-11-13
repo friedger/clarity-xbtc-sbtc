@@ -1,0 +1,27 @@
+[project]
+name = "clarity-xbtx-sbtc"
+description = ""
+authors = []
+telemetry = false
+cache_dir = "./.cache"
+requirements = [
+    {contract_id = "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token"},
+    {contract_id = "SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin"}
+]
+
+[contracts.xbtc-sbtc-swap]
+path = "contracts/xbtc-sbtc-swap.clar"
+clarity = "4"
+epoch = "3.3"
+
+[repl.analysis]
+passes = ["check_checker"]
+check_checker = { trusted_sender = false, trusted_caller = false, callee_filter = false }
+
+# Check-checker settings:
+# trusted_sender: if true, inputs are trusted after tx_sender has been checked.
+# trusted_caller: if true, inputs are trusted after contract-caller has been checked.
+# callee_filter: if true, untrusted data may be passed into a private function without a
+# warning, if it gets checked inside. This check will also propagate up to the
+# caller.
+# More informations: https://www.hiro.so/blog/new-safety-checks-in-clarinet
