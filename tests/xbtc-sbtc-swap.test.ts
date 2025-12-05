@@ -148,6 +148,143 @@ describe("xBTC-sBTC Swap Contract Tests", () => {
 
     expectXbtcBalance(wallet1).toBeUint(initalBalance.wallet1Xbtc);
   });
+
+  test("that user't can swap zero xBTC", async () => {
+    const amount = 0;
+    const response = simnet.callPublicFn(
+      "xbtc-sbtc-swap",
+      "xbtc-to-sbtc-swap",
+      [Cl.uint(amount)],
+      wallet1
+    );
+
+    expect(response.result).toBeErr(Cl.uint(3)); // non-positive amount
+  });
+
+  test("that user can swap exactly all contract sBTC", () => {
+    const amount = initalBalance.contractSbtc; // exact contract balance
+    const response = simnet.callPublicFn(
+      "xbtc-sbtc-swap",
+      "xbtc-to-sbtc-swap",
+      [Cl.uint(amount)],
+      wallet1
+    );
+
+    expect(response.result).toBeOk(Cl.bool(true));
+    expectSbtcBalance(`${deployer}.xbtc-sbtc-swap`).toBeUint(0);
+  });
+
+  test("that user can perform multiple sequential swaps", () => {
+    const amount1 = 1000;
+    const amount2 = 2000;
+
+    // First swap
+    const response1 = simnet.callPublicFn(
+      "xbtc-sbtc-swap",
+      "xbtc-to-sbtc-swap",
+      [Cl.uint(amount1)],
+      wallet1
+    );
+    expect(response1.result).toBeOk(Cl.bool(true));
+
+    // Second swap
+    const response2 = simnet.callPublicFn(
+      "xbtc-sbtc-swap",
+      "xbtc-to-sbtc-swap",
+      [Cl.uint(amount2)],
+      wallet1
+    );
+    expect(response2.result).toBeOk(Cl.bool(true));
+
+    // Verify final balances
+    expectXbtcBalance(wallet1).toBeUint(initalBalance.wallet1Xbtc - amount1 - amount2);
+    expectSbtcBalance(wallet1).toBeUint(initalBalance.wallet1Sbtc + amount1 + amount2);
+  });
+
+  test("that multiple users can swap", () => {
+    const amount1 = 1000;
+    const amount2 = 2000;
+
+    // Give wallet2 some xBTC
+    simnet.callPublicFn(
+      "SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin",
+      "mint-tokens",
+      [Cl.uint(amount2), Cl.principal(wallet2)],
+      deployer
+    );
+
+    // wallet1 swaps
+    const response1 = simnet.callPublicFn(
+      "xbtc-sbtc-swap",
+      "xbtc-to-sbtc-swap",
+      [Cl.uint(amount1)],
+      wallet1
+    );
+    expect(response1.result).toBeOk(Cl.bool(true));
+
+    // wallet2 swaps
+    const response2 = simnet.callPublicFn(
+      "xbtc-sbtc-swap",
+      "xbtc-to-sbtc-swap",
+      [Cl.uint(amount2)],
+      wallet2
+    );
+    expect(response2.result).toBeOk(Cl.bool(true));
+
+    // Verify balances
+    expectXbtcBalance(wallet1).toBeUint(initalBalance.wallet1Xbtc - amount1);
+    expectXbtcBalance(wallet2).toBeUint(0);
+    expectSbtcBalance(`${deployer}.xbtc-sbtc-swap`).toBeUint(
+      initalBalance.contractSbtc - amount1 - amount2
+    );
+  });
+
+  test("that user with no xBTC cannot swap", () => {
+    // wallet2 has no xBTC
+    const response = simnet.callPublicFn(
+      "xbtc-sbtc-swap",
+      "xbtc-to-sbtc-swap",
+      [Cl.uint(1000)],
+      wallet2
+    );
+
+    expect(response.result).toBeErr(Cl.uint(500));
+  });
+
+  test("that minimum amount (1) can be swapped", () => {
+    const amount = 1;
+    const response = simnet.callPublicFn(
+      "xbtc-sbtc-swap",
+      "xbtc-to-sbtc-swap",
+      [Cl.uint(amount)],
+      wallet1
+    );
+
+    expect(response.result).toBeOk(Cl.bool(true));
+    expectXbtcBalance(wallet1).toBeUint(initalBalance.wallet1Xbtc - amount);
+    expectSbtcBalance(wallet1).toBeUint(initalBalance.wallet1Sbtc + amount);
+  });
+
+  test("that swap fails when contract has zero sBTC", () => {
+    // First drain all sBTC from contract
+    const drainAmount = initalBalance.contractSbtc;
+    simnet.callPublicFn(
+      "xbtc-sbtc-swap",
+      "xbtc-to-sbtc-swap",
+      [Cl.uint(drainAmount)],
+      wallet1
+    );
+
+    // Now try to swap more - should fail
+    const response = simnet.callPublicFn(
+      "xbtc-sbtc-swap",
+      "xbtc-to-sbtc-swap",
+      [Cl.uint(1)],
+      wallet1
+    );
+
+    expect(response.result).toBeErr(Cl.uint(501));
+  });
 });
 
 function expectXbtcBalance(user: string) {
