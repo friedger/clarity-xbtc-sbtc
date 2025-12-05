@@ -20,6 +20,7 @@
 
 ;; private functions
 
+;; transfers sbtc from this contract to the tx-sender
 (define-private (transfer-sbtc (amount uint))
   (let ((sbtc-receiver tx-sender))
     (as-contract?
@@ -33,19 +34,22 @@
   )
 )
 
+;; burns xbtc by transferring to the wrapped bitcoin to this contract
 (define-private (burn-xbtc (amount uint))
   (contract-call? 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
     transfer amount tx-sender current-contract none
   )
 )
 
-(define-private (get-xbtc-balance (user principal))
+;; read-only functions
+
+(define-read-only (get-xbtc-balance (user principal))
   (unwrap-panic (contract-call? 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
     get-balance user
   ))
 )
 
-(define-private (get-sbtc-balance (user principal))
+(define-read-only (get-sbtc-balance (user principal))
   (unwrap-panic (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token
     get-balance user
   ))
