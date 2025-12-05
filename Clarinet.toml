@@ -6,7 +6,8 @@ telemetry = false
 cache_dir = "./.cache"
 requirements = [
     {contract_id = "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token"},
-    {contract_id = "SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin"}
+    {contract_id = "SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin"},
+    {contract_id = "SP000000000000000000002Q6VF78.sip-031"}
 ]
 
 [contracts.xbtc-sbtc-swap]

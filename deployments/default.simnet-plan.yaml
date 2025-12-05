@@ -100,6 +100,14 @@ plan:
     - id: 2
       transactions:
         - emulated-contract-publish:
+            contract-name: sip-031
+            emulated-sender: SP000000000000000000002Q6VF78
+            path: "./.cache/requirements/SP000000000000000000002Q6VF78.sip-031.clar"
+            clarity-version: 3
+      epoch: "3.2"
+    - id: 3
+      transactions:
+        - emulated-contract-publish:
             contract-name: xbtc-sbtc-swap
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/xbtc-sbtc-swap.clar

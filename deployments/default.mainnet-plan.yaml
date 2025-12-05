@@ -1,0 +1,18 @@
+---
+id: 0
+name: Mainnet deployment
+network: mainnet
+stacks-node: "https://api.hiro.so"
+bitcoin-node: "http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332"
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - contract-publish:
+            contract-name: xbtc-sbtc-swap
+            expected-sender: SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9
+            cost: 4000
+            path: contracts/xbtc-sbtc-swap.clar
+            anchor-block-only: true
+            clarity-version: 4
+      epoch: "3.3"

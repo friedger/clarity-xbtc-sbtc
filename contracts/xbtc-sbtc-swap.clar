@@ -12,25 +12,43 @@
     )
     (asserts! (>= user-xbtc-balance amount) (err u500))
     (asserts! (>= contract-sbtc-balance amount) (err u501))
-    (try! (transfer-sbtc amount))
+    (try! (transfer-sbtc-to amount tx-sender))
     (try! (burn-xbtc amount))
     (ok true)
+  )
+)
+
+;; allows to withdraw sBTC that is not backing any xBTC to the SIP-031 endowment recipient address
+(define-public (withdraw-excess-sbtc)
+  (let (
+      (sbtc-contract-balance (get-sbtc-balance current-contract))
+      (xbtc-supply (unwrap-panic (contract-call? 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
+        get-total-supply
+      )))
+      (xbtc-contract-balance (get-xbtc-balance current-contract))
+      (liquid-xbtc (- xbtc-supply xbtc-contract-balance))
+    )
+    (asserts! (> sbtc-contract-balance liquid-xbtc) (err u502))
+    (let ((excess-sbtc (- sbtc-contract-balance liquid-xbtc)))
+      (transfer-sbtc-to excess-sbtc (get-endowment-address))
+    )
   )
 )
 
 ;; private functions
 
 ;; transfers sbtc from this contract to the tx-sender
-(define-private (transfer-sbtc (amount uint))
-  (let ((sbtc-receiver tx-sender))
-    (as-contract?
-      ((with-ft 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token "sbtc-token"
-        amount
-      ))
-      (try! (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token
-        transfer amount current-contract sbtc-receiver none
-      ))
-    )
+(define-private (transfer-sbtc-to
+    (amount uint)
+    (sbtc-recipient principal)
+  )
+  (as-contract?
+    ((with-ft 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token "sbtc-token"
+      amount
+    ))
+    (try! (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token
+      transfer amount current-contract sbtc-recipient none
+    ))
   )
 )
 
@@ -53,4 +71,8 @@
   (unwrap-panic (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token
     get-balance user
   ))
+)
+
+(define-read-only (get-endowment-address)
+  (contract-call? 'SP000000000000000000002Q6VF78.sip-031 get-recipient)
 )
