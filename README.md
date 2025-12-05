@@ -35,6 +35,7 @@ Swaps xBTC tokens for sBTC tokens at a 1:1 ratio.
 - `(ok true)` on success
 - `(err u500)` if user has insufficient xBTC balance
 - `(err u501)` if contract has insufficient sBTC balance
+- `(err u3)` if user wants to swap 0 xBTC
 
 **Process:**
 1. Checks user's xBTC balance is sufficient
