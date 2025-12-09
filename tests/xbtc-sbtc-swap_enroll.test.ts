@@ -1,9 +1,6 @@
 import { Cl } from "@stacks/transactions";
 import { beforeEach, describe, expect, test } from "vitest";
-import {
-  init,
-  initalBalance
-} from "./utils";
+import { init, initalBalance } from "./utils";
 
 const accounts = simnet.getAccounts();
 const deployer = accounts.get("deployer")!;
@@ -51,5 +48,36 @@ describe("xBTC-sBTC Swap Contract Enroll Tests", () => {
     expect(enrollEvent.data.value.value["enrolled-address"].value).toBe(
       "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.xbtc-sbtc-swap"
     );
+  });
+
+  test("that user can't enroll to dual stacking if low balance", () => {
+    // Fund the swap contract with more sBTC than xBTC supply
+    let response = simnet.callPublicFn(
+      "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
+      "transfer",
+      [
+        Cl.uint(1), // contract has already some sBTC
+        Cl.principal(deployer),
+        Cl.principal(`${deployer}.xbtc-sbtc-swap`),
+        Cl.none(),
+      ],
+      deployer
+    );
+
+    expect(response.result).toBeOk(Cl.bool(true));
+
+    response = simnet.callPublicFn(
+      "xbtc-sbtc-swap",
+      "enroll",
+      [
+        Cl.principal(
+          "SP1HFCRKEJ8BYW4D0E3FAWHFDX8A25PPAA83HWWZ9.dual-stacking-v1"
+        ),
+        Cl.none(),
+      ],
+      wallet1
+    );
+
+    expect(response.result).toBeErr(Cl.uint(104));
   });
 });
