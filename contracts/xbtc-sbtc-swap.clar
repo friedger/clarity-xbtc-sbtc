@@ -18,7 +18,9 @@
   )
 )
 
-;; allows to withdraw sBTC that is not backing any xBTC to the SIP-031 endowment recipient address
+;; allows to withdraw sBTC that is not backing any xBTC to the the xbtc-swap smart wallet
+(define-constant excess-sbtc-receiver 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.xbtc-swap-wallet)
+
 (define-public (withdraw-excess-sbtc)
   (let (
       (sbtc-contract-balance (get-sbtc-balance current-contract))
@@ -30,7 +32,7 @@
     )
     (asserts! (> sbtc-contract-balance liquid-xbtc) (err u502))
     (let ((excess-sbtc (- sbtc-contract-balance liquid-xbtc)))
-      (transfer-sbtc-to excess-sbtc (get-endowment-address))
+      (transfer-sbtc-to excess-sbtc excess-sbtc-receiver)
     )
   )
 )
@@ -73,6 +75,19 @@
   ))
 )
 
-(define-read-only (get-endowment-address)
-  (contract-call? 'SP000000000000000000002Q6VF78.sip-031 get-recipient)
+;; enrollment of dual stacking
+
+;; enrolls this contract in the dual stacking contract or similar contracts
+(define-trait enroll-trait (
+  (enroll
+    ((optional principal))
+    (response bool uint)
+  )
+))
+
+(define-public (enroll
+    (enroll-contract <enroll-trait>)
+    (receiver (optional principal))
+  )
+  (as-contract? () (try! (contract-call? enroll-contract enroll receiver)))
 )

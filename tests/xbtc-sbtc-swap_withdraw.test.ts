@@ -52,7 +52,7 @@ describe("xBTC-sBTC Swap Contract Withdrawal Tests", () => {
     expectSbtcTransfer(response.events[0], {
       amount: expectedExcessAmount.toString(),
       sender: `${deployer}.xbtc-sbtc-swap`,
-      recipient: "SM1Z6BP8PDKYKXTZXXSKXFEY6NQ7RAM7DAEAYR045",
+      recipient: "SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.xbtc-swap-wallet",
     });
   });
 
@@ -98,7 +98,7 @@ describe("xBTC-sBTC Swap Contract Withdrawal Tests", () => {
     expectSbtcTransfer(response.events[0], {
       amount: accessSbtc.toString(),
       sender: `${deployer}.xbtc-sbtc-swap`,
-      recipient: "SM1Z6BP8PDKYKXTZXXSKXFEY6NQ7RAM7DAEAYR045",
+      recipient: "SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.xbtc-swap-wallet",
     });
   });
 
@@ -243,7 +243,7 @@ describe("xBTC-sBTC Swap Contract Withdrawal Tests", () => {
     expectSbtcTransfer(response.events[0], {
       amount: "15000", // 20k extra sbtc - 5k remaining backed sbtc
       sender: `${deployer}.xbtc-sbtc-swap`,
-      recipient: "SM1Z6BP8PDKYKXTZXXSKXFEY6NQ7RAM7DAEAYR045",
+      recipient: "SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.xbtc-swap-wallet",
     });
 
     // Verify contract still has enough sBTC for remaining liquid xBTC
