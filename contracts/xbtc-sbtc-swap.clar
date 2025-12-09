@@ -1,8 +1,8 @@
-;; xbtx to sbtc one-way swap
+;; xbtc to sbtc one-way swap
 ;; swaps xbtc tokens for sbtc tokens 1:1
 
 ;; 1. Custodian transfers backing Bitocin as sBTC to this contract
-;; 2. Users call xbtx-to-sbtc-swap, receive sBTC and send xBTC to this contract
+;; 2. Users call xbtc-to-sbtc-swap, receive sBTC and send xBTC to this contract
 ;; 3. Custodian can burn xBTC in this contract
 
 (define-public (xbtc-to-sbtc-swap (amount uint))
@@ -18,7 +18,7 @@
   )
 )
 
-;; allows to withdraw sBTC that is not backing any xBTC to the the xbtc-swap smart wallet
+;; allows to withdraw sBTC that is not backing any xBTC to the xbtc-swap smart wallet
 (define-constant excess-sbtc-receiver 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.xbtc-swap-wallet)
 
 (define-public (withdraw-excess-sbtc)
