@@ -26,6 +26,9 @@ importers:
       chokidar-cli:
         specifier: ^3.0.0
         version: 3.0.0
+      stxer:
+        specifier: ^0.4.5
+        version: 0.4.5
       vitest:
         specifier: ^4.0.7
         version: 4.0.8(@types/node@24.10.1)
@@ -477,6 +480,9 @@ packages:
   '@stacks/profile@7.3.0':
     resolution: {integrity: sha512-tFxIvKUzQJPV933D5oQw9TwTYCIui8igiZcgeuFHVPKRN5SvLJI8sFnSO7RGNu/pSV9CmiJYto/tu1QYeRD+Jg==}
 
+  '@stacks/stacks-blockchain-api-types@7.14.1':
+    resolution: {integrity: sha512-65hvhXxC+EUqHJAQsqlBCqXB+zwfxZICSKYJugdg6BCp9I9qniyfz5XyQeC4RMVo0tgEoRdS/b5ZCFo5kLWmxA==}
+
   '@stacks/transactions@6.17.0':
     resolution: {integrity: sha512-FUah2BRgV66ApLcEXGNGhwyFTRXqX5Zco3LpiM3essw8PF0NQlHwwdPgtDko5RfrJl3LhGXXe/30nwsfNnB3+g==}
 
@@ -816,6 +822,14 @@ packages:
     resolution: {integrity: sha512-Mz9QMT5fJe7bKI7MH31UilT5cEK5EHHRCccw/YRFsRY47AuNgaV6HY3rscp0/I4Q+tTW/5zoqpSeRRI54TkDWA==}
     engines: {node: '>= 0.10'}
 
+  clarity-abi@0.1.0:
+    resolution: {integrity: sha512-+hf+M/MXsZY7DeGsVOXwc6p8Fbq3xNm1Gdp2R3ASdUtXMDmdnAZPEg2RSI5kQu7sFhAkBvgLdpXvsv8E05m29g==}
+    peerDependencies:
+      typescript: '>=5.0.4'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   cliui@5.0.0:
     resolution: {integrity: sha512-PYeGSEmmHM6zvoef2w8TPzlrnNpXIjTipYK780YswmIP9vjxmd6Y2a3CB2Ks6/AU8NHjZugXvo8w3oWM2qnwXA==}
 
@@ -853,6 +867,9 @@ packages:
 
   cross-fetch@3.2.0:
     resolution: {integrity: sha512-Q+xVJLoGOeIMXZmbUK4HYk+69cQH6LudR0Vu/pRm2YlU/hDV9CiS0gKUMaWY5f2NeUH9C1nV3bsTlCo0FsTV1Q==}
+
+  cross-fetch@4.1.0:
+    resolution: {integrity: sha512-uKm5PU+MHTootlWEY+mZ4vvXoCn4fLQxT9dSc1sXVMSFkINTJVN8cAQROpwcKm8bJ/c7rgZVIBWzH5T78sNZZw==}
 
   crossws@0.3.5:
     resolution: {integrity: sha512-ojKiDvcmByhwa8YYqbQI/hg7MEU0NC03+pSdEq4ZUnZR9xXpwk7E43SMNGkn+JxJGPFtNvQ48+vV2p+P1ml5PA==}
@@ -1489,6 +1506,10 @@ packages:
     resolution: {integrity: sha512-gmBGslpoQJtgnMAvOVqGZpEz9dyoKTCzy2nfz/n8aIFhN/jCE/rCmcxabB6jOOHV+0WNnylOxaxBQPSvcWklhA==}
     engines: {node: '>=12'}
 
+  stxer@0.4.5:
+    resolution: {integrity: sha512-wuBLjlO2431o6Qh9ev2FndHBRHL6regiP03sry34e9NlsmR7tiWUzal4N5anagSkY1c4h55JcvSR2OEYM1Q8Hg==}
+    engines: {node: '>=12'}
+
   thread-stream@0.15.2:
     resolution: {integrity: sha512-UkEhKIg2pD+fjkHQKyJO3yoIvAP3N6RlNFt2dUhcS1FGvCD1cQa1M/PGknCLFIyZdtJOWQjejp7bdNqmN7zwdA==}
 
@@ -1516,6 +1537,9 @@ packages:
 
   tr46@0.0.3:
     resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
+
+  ts-clarity@0.1.1:
+    resolution: {integrity: sha512-pCzTGj+8n9yO99uxRRWo4BJ8j2ukWAKNYNoDjsFgOOdGI3fyOZgn/LYOhNxy1oL1br37sVnd60JajA4Rk7slMg==}
 
   tslib@1.14.1:
     resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
@@ -2491,6 +2515,8 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  '@stacks/stacks-blockchain-api-types@7.14.1': {}
+
   '@stacks/transactions@6.17.0':
     dependencies:
       '@noble/hashes': 1.1.5
@@ -3131,6 +3157,8 @@ snapshots:
       to-buffer: 1.2.2
     optional: true
 
+  clarity-abi@0.1.0: {}
+
   cliui@5.0.0:
     dependencies:
       string-width: 3.1.0
@@ -3186,6 +3214,12 @@ snapshots:
     optional: true
 
   cross-fetch@3.2.0:
+    dependencies:
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
+
+  cross-fetch@4.1.0:
     dependencies:
       node-fetch: 2.7.0
     transitivePeerDependencies:
@@ -3914,6 +3948,18 @@ snapshots:
     dependencies:
       ansi-regex: 6.2.2
 
+  stxer@0.4.5:
+    dependencies:
+      '@stacks/network': 7.2.0
+      '@stacks/stacks-blockchain-api-types': 7.14.1
+      '@stacks/transactions': 7.3.0
+      c32check: 2.0.0
+      clarity-abi: 0.1.0
+      ts-clarity: 0.1.1
+    transitivePeerDependencies:
+      - encoding
+      - typescript
+
   thread-stream@0.15.2:
     dependencies:
       real-require: 0.1.0
@@ -3941,6 +3987,16 @@ snapshots:
       is-number: 7.0.0
 
   tr46@0.0.3: {}
+
+  ts-clarity@0.1.1:
+    dependencies:
+      '@stacks/stacks-blockchain-api-types': 7.14.1
+      '@stacks/transactions': 7.3.0
+      clarity-abi: 0.1.0
+      cross-fetch: 4.1.0
+    transitivePeerDependencies:
+      - encoding
+      - typescript
 
   tslib@1.14.1: {}
 
