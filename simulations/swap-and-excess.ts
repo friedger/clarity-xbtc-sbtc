@@ -25,8 +25,9 @@ const XBTC_SWAP_WALLET = 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.xbtc-swap-wa
 
 // Amounts (in smallest units - satoshis)
 const SBTC_FUNDING_AMOUNT = 50_00000000; // 50 sBTC (8 decimals)
-const SWAP_AMOUNT = 1_00000000; // 30 xBTC to swap for 30 sBTC
-const RETURN_AMOUNT = 10_00000000; // 20 sBTC to return to custodian
+const SWAP_AMOUNT = 1_00000000; // 1 xBTC to swap for 1 sBTC
+const XBTC_SUPPLY = 37_34473978;
+const RETURN_AMOUNT = SBTC_FUNDING_AMOUNT - XBTC_SUPPLY; // 10 sBTC to return to custodian
 
 // ============================================
 // Simulation
@@ -70,6 +71,18 @@ const simulationId = await SimulationBuilder.new({
     contract_id: XBTC_SWAP_WALLET,
     function_name: 'sip010-transfer',
     function_args: [
+      Cl.uint(RETURN_AMOUNT + 1),
+      Cl.principal(CUSTODIAN),
+      Cl.none(),
+      Cl.principal(SBTC_TOKEN),
+      Cl.stringAscii(SBTC_TOKEN_NAME),
+      Cl.none(),
+    ],
+  })
+  .addContractCall({
+    contract_id: XBTC_SWAP_WALLET,
+    function_name: 'sip010-transfer',
+    function_args: [
       Cl.uint(RETURN_AMOUNT),
       Cl.principal(CUSTODIAN),
       Cl.none(),
@@ -78,29 +91,7 @@ const simulationId = await SimulationBuilder.new({
       Cl.none(),
     ],
   })
-
   .run();
 
 console.log(`Simulation created!`);
 console.log(`View results at: https://stxer.xyz/simulations/mainnet/${simulationId}`);
-
-// ============================================
-// Expected Flow:
-// ============================================
-// 1. Custodian funds swap contract with 50 sBTC
-//    - Swap contract sBTC balance: 50 sBTC
-//
-// 2. User swaps 30 xBTC for 30 sBTC
-//    - User receives 30 sBTC
-//    - Swap contract receives 30 xBTC (locked)
-//    - Swap contract sBTC balance: 20 sBTC
-//    - Liquid xBTC supply reduced by 30
-//
-// 3. Excess withdrawal triggered
-//    - Calculates: excess = contract_sbtc - liquid_xbtc
-//    - Excess sBTC sent to xbtc-swap-wallet
-//    - Swap contract sBTC balance: matches remaining liquid xBTC
-//
-// 4. Wallet admin returns excess to custodian
-//    - Custodian receives the excess sBTC
-// ============================================
