@@ -26,9 +26,14 @@ const walletInfo = document.getElementById("wallet-info");
 const walletAddress = document.getElementById("wallet-address");
 const swapSection = document.getElementById("swap-section");
 const xbtcBalance = document.getElementById("xbtc-balance");
+const iouBalance = document.getElementById("iou-balance");
+const contractXbtcBalance = document.getElementById("contract-xbtc-balance");
 const sbtcBalance = document.getElementById("sbtc-balance");
 const swapAmountInput = document.getElementById("swap-amount");
-const swapBtn = document.getElementById("swap-btn");
+const depositBtn = document.getElementById("deposit-btn");
+const withdrawBtn = document.getElementById("withdraw-btn");
+const claimBtn = document.getElementById("claim-btn");
+const initUnwrapBtn = document.getElementById("init-unwrap-btn");
 const refreshBalancesBtn = document.getElementById("refresh-balances-btn");
 const statusMessage = document.getElementById("status-message");
 
@@ -102,16 +107,50 @@ async function getSbtcBalance(address) {
   }
 }
 
+async function getSwappingXbtcBalance(address) {
+  try {
+    const [contractAddress, contractName] = SWAP_CONTRACT.split(".");
+    const result = await fetchCallReadOnlyFunction({
+      contractAddress,
+      contractName,
+      functionName: "get-swapping-xbtc-balance",
+      functionArgs: [principalCV(address)],
+      senderAddress: address,
+    });
+
+    return Number(result.value.value);
+  } catch (error) {
+    console.error("Error fetching SWXBTC balance:", error);
+    return 0;
+  }
+}
+
+async function getContractXbtcBalance() {
+  // Query Wrapped Bitcoin contract for the swap contract's xBTC balance
+  try {
+    const swapPrincipal = SWAP_CONTRACT.split(".").slice(0, 2).join(".");
+    return await getXbtcBalance(swapPrincipal);
+  } catch (error) {
+    console.error("Error fetching contract xBTC balance:", error);
+    return 0;
+  }
+}
+
 async function updateBalances(userAddress) {
   try {
-    const [xbtcBal, sbtcBal] = await Promise.all([
+    const [xbtcBal, iouBal, contractXbtcBal, sbtcBal] = await Promise.all([
       getXbtcBalance(userAddress),
+      getSwappingXbtcBalance(userAddress),
+      getContractXbtcBalance(),
       getSbtcBalance(
         SWAP_CONTRACT.split(".")[0] + "." + SWAP_CONTRACT.split(".")[1]
       ),
     ]);
 
     xbtcBalance.textContent = formatBalance(xbtcBal, XBTC_DECIMALS) + " xBTC";
+    iouBalance.textContent = formatBalance(iouBal, XBTC_DECIMALS) + " SWXBTC";
+    contractXbtcBalance.textContent =
+      formatBalance(contractXbtcBal, XBTC_DECIMALS) + " xBTC";
     sbtcBalance.textContent = formatBalance(sbtcBal, SBTC_DECIMALS) + " sBTC";
   } catch (error) {
     console.error("Error updating balances:", error);
@@ -119,8 +158,8 @@ async function updateBalances(userAddress) {
   }
 }
 
-// Swap function
-async function performSwap() {
+// Deposit xBTC (mint SWXBTC)
+async function performDepositXbtc() {
   const amount = swapAmountInput.value;
 
   if (!amount || parseFloat(amount) <= 0) {
@@ -133,26 +172,23 @@ async function performSwap() {
   const amountInSats = parseAmount(amount, XBTC_DECIMALS);
 
   try {
-    swapBtn.disabled = true;
-    swapBtn.textContent = "Processing...";
+    depositBtn.disabled = true;
+    depositBtn.textContent = "Processing...";
 
-    await request("stx_callContract", {
+    const data = await request("stx_callContract", {
       contract: SWAP_CONTRACT,
-      functionName: "xbtc-to-sbtc-swap",
+      functionName: "deposit-xbtc",
       functionArgs: [Cl.uint(amountInSats)],
       postConditionMode: "deny",
       postConditions: [
         Pc.principal(userAddress)
           .willSendEq(amountInSats)
           .ft(XBTC_CONTRACT, "wrapped-bitcoin"),
-        Pc.principal(SWAP_CONTRACT)
-          .willSendEq(amountInSats)
-          .ft(SBTC_CONTRACT, "sbtc-token"),
       ],
     });
 
     console.log("Transaction submitted:", data);
-    showStatus(`Swap submitted! Transaction ID: ${data.txId}`);
+    showStatus(`Deposit submitted! Transaction ID: ${data.txId}`);
     swapAmountInput.value = "";
 
     // Wait a bit then refresh balances
@@ -160,18 +196,127 @@ async function performSwap() {
       updateBalances(userAddress);
     }, 3000);
   } catch (error) {
-    console.error("Swap error:", error);
-    showStatus(`Swap failed: ${error.message}`, true);
+    console.error("Deposit error:", error);
+    showStatus(`Deposit failed: ${error.message}`, true);
   } finally {
-    swapBtn.disabled = false;
-    swapBtn.textContent = "Swap xBTC → sBTC";
+    depositBtn.disabled = false;
+    depositBtn.textContent = "Deposit xBTC (mint SWXBTC)";
+  }
+}
+
+async function performWithdrawXbtc() {
+  const amount = swapAmountInput.value;
+
+  if (!amount || parseFloat(amount) <= 0) {
+    showStatus("Please enter a valid amount", true);
+    return;
+  }
+
+  const userData = getLocalStorage();
+  const userAddress = userData.addresses.stx[0].address;
+  const amountInSats = parseAmount(amount, XBTC_DECIMALS);
+
+  try {
+    withdrawBtn.disabled = true;
+    withdrawBtn.textContent = "Processing...";
+
+    const data = await request("stx_callContract", {
+      contract: SWAP_CONTRACT,
+      functionName: "withdraw-xbtc",
+      functionArgs: [Cl.uint(amountInSats)],
+      postConditionMode: "deny",
+      postConditions: [
+        Pc.principal(SWAP_CONTRACT)
+          .willSendEq(amountInSats)
+          .ft(XBTC_CONTRACT, "wrapped-bitcoin"),
+      ],
+    });
+
+    console.log("Transaction submitted:", data);
+    showStatus(`Withdraw submitted! Transaction ID: ${data.txId}`);
+    swapAmountInput.value = "";
+
+    setTimeout(() => {
+      updateBalances(userAddress);
+    }, 3000);
+  } catch (error) {
+    console.error("Withdraw error:", error);
+    showStatus(`Withdraw failed: ${error.message}`, true);
+  } finally {
+    withdrawBtn.disabled = false;
+    withdrawBtn.textContent = "Withdraw xBTC (burn SWXBTC)";
+  }
+}
+
+async function performClaimSbtc() {
+  const userData = getLocalStorage();
+  const userAddress = userData.addresses.stx[0].address;
+
+  try {
+    claimBtn.disabled = true;
+    claimBtn.textContent = "Processing...";
+
+    const data = await request("stx_callContract", {
+      contract: SWAP_CONTRACT,
+      functionName: "claim-sbtc",
+      functionArgs: [],
+      postConditionMode: "allow",
+      postConditions: [],
+    });
+
+    console.log("Transaction submitted:", data);
+    showStatus(`Claim submitted! Transaction ID: ${data.txId}`);
+
+    setTimeout(() => {
+      updateBalances(userAddress);
+    }, 3000);
+  } catch (error) {
+    console.error("Claim error:", error);
+    showStatus(`Claim failed: ${error.message}`, true);
+  } finally {
+    claimBtn.disabled = false;
+    claimBtn.textContent = "Claim sBTC (burn SWXBTC)";
+  }
+}
+
+async function performInitUnwrap() {
+  const userData = getLocalStorage();
+  const userAddress = userData.addresses.stx[0].address;
+
+  try {
+    initUnwrapBtn.disabled = true;
+    initUnwrapBtn.textContent = "Processing...";
+
+    const data = await request("stx_callContract", {
+      contract: SWAP_CONTRACT,
+      functionName: "init-unwrap",
+      functionArgs: [],
+      postConditionMode: "allow",
+      postConditions: [],
+    });
+
+    console.log("Transaction submitted:", data);
+    showStatus(`Init unwrap submitted! Transaction ID: ${data.txId}`);
+
+    setTimeout(() => {
+      updateBalances(userAddress);
+    }, 3000);
+  } catch (error) {
+    console.error("Init unwrap error:", error);
+    showStatus(`Init unwrap failed: ${error.message}`, true);
+  } finally {
+    initUnwrapBtn.disabled = false;
+    initUnwrapBtn.textContent = "Init Unwrap (custodian)";
   }
 }
 
 // Event listeners
 connectWalletBtn.addEventListener("click", connectWallet);
 disconnectBtn.addEventListener("click", disconnectWallet);
-swapBtn.addEventListener("click", performSwap);
+depositBtn.addEventListener("click", performDepositXbtc);
+withdrawBtn.addEventListener("click", performWithdrawXbtc);
+claimBtn.addEventListener("click", performClaimSbtc);
+initUnwrapBtn.addEventListener("click", performInitUnwrap);
 
 refreshBalancesBtn.addEventListener("click", () => {
   if (getLocalStorage()) {

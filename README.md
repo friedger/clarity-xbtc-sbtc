@@ -1,151 +1,211 @@
 # xBTC to sBTC Swap Contract
 
-A Clarity smart contract that enables one-way swapping of xBTC (Wrapped Bitcoin) tokens to sBTC tokens at a 1:1 ratio on the Stacks blockchain.
+A Clarity smart contract that coordinates a two‑step migration from xBTC (Wrapped Bitcoin) to sBTC on the Stacks blockchain.
+
+Unlike a simple atomic swap, this design uses an **IOU token (`swapping-xbtc`)** to track deposited xBTC and enable users to claim sBTC once the unwrapped xBTC is available as sBTC via the sBTC bridge.
 
 ## Overview
 
-This contract facilitates the migration from xBTC to sBTC by providing a trustless swap mechanism. Users can exchange their xBTC tokens for sBTC tokens held by the contract, while the xBTC tokens are transferred to the contract for eventual burning by the custodian.
+This project is composed of two contracts:
 
-## How It Works
+- `xbtc-sbtc-swap.clar` — the main swap coordinator that accepts xBTC deposits, mints IOUs, and pays out sBTC when available.
+- `swapping-xbtc.clar` — an FT contract representing IOUs (token symbol `SWXBTC`) that can be minted/burned only by the swap contract.
 
-The swap process follows these steps:
+### High‑level flow
 
-1. **Custodian Setup**: The custodian transfers backing Bitcoin as sBTC to this contract
-2. **User Swap**: Users call `xbtc-to-sbtc-swap` to:
-   - Send their xBTC to the contract
-   - Receive an equal amount of sBTC from the contract
-3. **Custodian Cleanup**: The custodian can burn the accumulated xBTC in the contract
-4. **Excess Withdrawal**: Excess sBTC (not backing any xBTC) can be withdrawn to the xbtc-swap smart wallet
+1. **User deposits xBTC** into the swap contract via `deposit-xbtc`. The contract mints the equivalent amount of `swapping-xbtc` IOUs to the user.
+2. **Custodian collects xBTC** from the contract via `init-unwrap` and sends BTC into the sBTC bridge.
+3. Once sBTC is funded, **users claim sBTC** by burning their IOUs via `claim-sbtc`.
+4. When the contract holds more sBTC than needed to back circulating IOUs, anyone can call `withdraw-excess-sbtc` to send the surplus to the designated excess wallet.
 
 ## Contract Details
 
-### Public Functions
+### Token Contracts
 
-#### `xbtc-to-sbtc-swap`
+- **xBTC** (Wrapped Bitcoin): `SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin`
+- **sBTC**: `SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token`
+- **IOU (swapping-xbtc)**: `SWXBTC` fungible token, implemented in `swapping-xbtc.clar`
 
-Swaps xBTC tokens for sBTC tokens at a 1:1 ratio.
+---
+
+## Public Functions (Swap Contract)
+
+### `deposit-xbtc`
+
+Deposits xBTC into the swap contract and mints `swapping-xbtc` IOUs to the depositor.
 
 ```clarity
-(xbtc-to-sbtc-swap (amount uint))
+(deposit-xbtc (amount uint))
 ```
-
-**Parameters:**
-- `amount`: The amount of xBTC to swap for sBTC (in smallest units)
 
 **Returns:**
 - `(ok true)` on success
-- `(err u500)` if user has insufficient xBTC balance
-- `(err u501)` if contract has insufficient sBTC balance
-- `(err u3)` if user wants to swap 0 xBTC
+- Reverts on failure (e.g., transfer failure)
 
 **Process:**
-1. Checks user's xBTC balance is sufficient
-2. Checks contract's sBTC balance is sufficient
-3. Transfers sBTC from contract to user
-4. Transfers xBTC from user to contract
+1. Transfers `amount` xBTC from the caller to the swap contract.
+2. Mints `amount` `swapping-xbtc` tokens to the caller.
 
-**Example:**
-Swap 1000 xBTC for 1000 sBTC:
+---
+
+### `withdraw-xbtc`
+
+Withdraws xBTC from the contract back to the caller by burning `swapping-xbtc` IOUs.
+
 ```clarity
-(contract-call? .xbtc-sbtc-swap xbtc-to-sbtc-swap u1000)
+(withdraw-xbtc (amount uint))
 ```
 
-#### `withdraw-excess-sbtc`
+**Returns:**
+- `(ok true)` on success
+- `(err u513)` if the caller has insufficient `swapping-xbtc` balance
+- `(err u511)` if the contract has insufficient xBTC to fulfill the withdraw, e.g. when unwrap was already initalized.
 
-Withdraws any excess sBTC from the contract that is not needed to back the liquid xBTC supply. The excess is sent to the xBTC Swap smart wallet.
+**Process:**
+1. Confirms the caller has at least `amount` `swapping-xbtc`.
+2. Confirms the contract holds at least `amount` xBTC.
+3. Burns `amount` `swapping-xbtc` from the caller.
+4. Transfers `amount` xBTC from the contract to the caller.
+
+---
+
+### `claim-sbtc`
+
+Allows users to redeem their `swapping-xbtc` IOUs for sBTC, up to the available sBTC balance in the contract.
+
+```clarity
+(claim-sbtc)
+```
+
+**Returns:**
+- `(ok true)` on success
+- `(err u511)` if the caller has no `swapping-xbtc` balance (or amount would be zero)
+
+**Process:**
+1. Reads the caller’s `swapping-xbtc` balance.
+2. Determines the claimable amount as the lesser of the caller’s IOUs and the contract’s sBTC balance.
+3. Burns that amount of `swapping-xbtc` from the caller.
+4. Transfers that amount of sBTC from the contract to the caller.
+
+---
+
+### `withdraw-excess-sbtc`
+
+Withdraws sBTC that is not needed to back circulating `swapping-xbtc` IOUs.
 
 ```clarity
 (withdraw-excess-sbtc)
 ```
 
-**Parameters:** None
+**Returns:**
+- `(ok true)` on success
+- `(err u514)` if there is no excess sBTC to withdraw
+
+**Process:**
+1. Reads the contract’s sBTC balance.
+2. Reads total `swapping-xbtc` supply (IOUs outstanding).
+3. If `sBTC balance > IOU supply`, sends the difference to the swap wallet (`excess-sbtc-receiver`).
+
+**Notes:**
+- Anyone can call this (permissionless).
+- The receiver is hardcoded to `SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.xbtc-swap-wallet`.
+
+---
+
+### `initialize`
+
+Sets the custodian address that will receive xBTC during the unwrap flow.
+
+```clarity
+(initialize (custodian-address principal))
+```
 
 **Returns:**
 - `(ok true)` on success
-- `(err u502)` if there is no excess sBTC to withdraw
-
-**Process:**
-1. Calculates total xBTC supply
-2. Determines amount of xBTC locked in contract (no longer in circulation)
-3. Calculates liquid xBTC (xBTC supply - xBTC in contract)
-4. Compares contract's sBTC balance to liquid xBTC:
-   - If sBTC balance > liquid xBTC, the difference is excess
-   - Excess sBTC is transferred to the endowment address
-   - Fails if no excess exists
+- `(err u401)` if caller is not the deployer
+- `(err u403)` if already initialized
 
 **Notes:**
-- Can be called by anyone (permissionless)
-- Excess sBTC is sent to `SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.xbtc-swap-wallet`, not the caller
-- Ensures only sBTC backing circulating xBTC remains in the contract
+- This function can only be called once.
 
-**Example:**
+---
+
+### `init-unwrap`
+
+Transfers all xBTC held by the contract to the configured custodian.
+
 ```clarity
-(contract-call? .xbtc-sbtc-swap withdraw-excess-sbtc)
+(init-unwrap)
 ```
 
-#### `enroll`
+**Returns:**
+- `(ok true)` on success
 
-Enrolls this contract in a staking or dual stacking contract. This allows the contract's sBTC to participate in stacking rewards.
+**Notes:**
+- The custodian address must be initialized first via `initialize`.
+- This is intended to let the custodian collect xBTC for off‑chain bridge operations.
+
+---
+
+### `enroll`
+
+Enrolls the contract in a stacking/dual‑stacking contract that implements the `enroll-trait`.
 
 ```clarity
 (enroll (enroll-contract <enroll-trait>) (receiver (optional principal)))
 ```
 
-**Parameters:**
-- `enroll-contract`: A contract implementing the enroll-trait that handles staking enrollment
-- `receiver`: Optional principal to receive stacking rewards (if none, defaults to contract)
-
 **Returns:**
 - `(ok true)` on success
-- `(err u104)` if not enough sBTC for enrollment (e.g., Dual Stacking v1 minimum requirements)
+- Reverts if the enrollment contract fails
 
-**Process:**
-1. Calls the provided enroll-contract's enroll function with complete asset restrictions
+---
 
-**Example:**
-Enroll in a staking contract:
-```clarity
-(contract-call? .xbtc-sbtc-swap enroll
-   'SP1HFCRKEJ8BYW4D0E3FAWHFDX8A25PPAA83HWWZ9.dual-stacking-v1
-   none)
-```
+## Read-Only Helpers
 
-### Read-Only Functions
-
-#### `get-xbtc-balance`
+### `get-xbtc-balance`
 
 ```clarity
 (get-xbtc-balance (user principal))
 ```
 
-Returns the xBTC balance of a given principal.
+Returns the xBTC balance for a given principal.
 
-#### `get-sbtc-balance`
+### `get-swapping-xbtc-balance`
+
+```clarity
+(get-swapping-xbtc-balance (user principal))
+```
+
+Returns the `swapping-xbtc` IOU balance for a given principal.
+
+### `get-sbtc-balance`
 
 ```clarity
 (get-sbtc-balance (user principal))
 ```
 
-Returns the sBTC balance of a given principal.
+Returns the sBTC balance for a given principal.
 
-### Token Contracts
+---
 
-- **xBTC**: `SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin`
-- **sBTC**: `SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token`
+## Errors (Known Codes)
 
-## Error Codes
+| Code | Meaning |
+|------|---------|
+| `u401` | Unauthorized (caller not allowed) |
+| `u403` | Forbidden (already initialized) |
+| `u510` | Not initialized (custodian missing) |
+| `u511` | Not enough xBTC in contract |
+| `u512` | Not enough sBTC in contract |
+| `u513` | Not enough `swapping-xbtc` balance |
+| `u514` | No excess sBTC to withdraw |
 
-| Code | Description |
-|------|-------------|
-| `u3` | Non-positive amount (user wants to swap 0 xBTC) |
-| `u500` | Insufficient xBTC balance |
-| `u501` | Insufficient sBTC balance in contract |
-| `u502` | withdraw: Withdraw: No excess sBTC to withdraw |
-| `u104` | enroll: Not enough sBTC for Dual Stacking v1 |
+---
 
 ## Web Application
 
-A user-friendly web interface is provided to interact with the swap contract. Users can connect their Stacks wallet and swap xBTC for sBTC with just a few clicks.
+A simple web interface is provided to interact with the swap contract.
 
 ### Running the Web App
 
@@ -166,14 +226,6 @@ Build for production:
 pnpm build
 ```
 
-### Features
-
-- 🔐 **Wallet Connection**: Connect using Hiro Wallet or other Stacks wallets
-- 💰 **Balance Display**: View your xBTC balance and contract's sBTC balance
-- 🔄 **One-Click Swap**: Simple interface to swap xBTC to sBTC
-- ✅ **Post Conditions**: Transactions include safety checks to protect your assets
-- 📱 **Responsive Design**: Works on desktop and mobile devices
-
 ### Configuration
 
 The web app is configured for testnet by default. To switch to mainnet:
@@ -181,6 +233,8 @@ The web app is configured for testnet by default. To switch to mainnet:
 1. Open `public/app.js`
 2. Change `const IS_MAINNET = false;` to `const IS_MAINNET = true;`
 3. Update the `SWAP_CONTRACT` address to the mainnet deployment
+
+---
 
 ## Development
 
@@ -205,23 +259,25 @@ pnpm test
 
 ```
 ├── contracts/
-│   └── xbtc-sbtc-swap.clar       # Main swap contract
+│   ├── swapping-xbtc.clar      # IOU token contract (SWXBTC)
+│   └── xbtc-sbtc-swap.clar     # Swap coordinator contract
 ├── public/
-│   ├── index.html                # Web app UI
-│   ├── app.js                    # Wallet integration & contract calls
-│   └── styles.css                # Styling
+│   ├── index.html              # Web app UI
+│   ├── app.js                  # Wallet integration & contract calls
+│   └── styles.css              # Styling
 ├── tests/
-│   ├── xbtc-sbtc-swap.test.ts    # Swap functionality tests
-│   ├── xbtc-sbtc-swap_withdraw.test.ts # Withdrawal functionality tests
-│   └── utils.ts                  # Test utilities
+│   ├── xbtc-sbtc-swap.test.ts
+│   ├── xbtc-sbtc-swap_withdraw.test.ts
+│   ├── xbtc-sbtc-swap_enroll.test.ts
+│   └── utils.ts
 ├── settings/
 │   ├── Devnet.toml
 │   ├── Mainnet.toml
 │   └── Testnet.toml
-├── Clarinet.toml                  # Clarinet configuration
-├── vite.config.mjs               # Vite configuration for web app
-├── package.json                  # Dependencies and scripts
-└── README.md                      # This file
+├── Clarinet.toml                # Clarinet configuration
+├── vite.config.mjs             # Vite configuration for web app
+├── package.json                # Dependencies and scripts
+└── README.md                    # This file
 ```
 
 ## Usage
@@ -230,39 +286,52 @@ pnpm test
 
 1. Visit the web app and click "Connect Wallet"
 2. Approve the connection in your Stacks wallet
-3. Enter the amount of xBTC you want to swap
-4. Click "Swap xBTC → sBTC"
-5. Confirm the transaction in your wallet
+3. Use the UI to:
+   - Deposit xBTC and receive `swapping-xbtc` IOUs
+   - Claim sBTC once the bridge is funded
+4. Confirm transactions in your wallet
 
 ### Via Contract Call (Clarity)
 
-#### Swap xBTC to sBTC
-
-To swap 1000 xBTC for sBTC:
+#### Deposit xBTC (mint IOUs)
 
 ```clarity
-(contract-call? .xbtc-sbtc-swap xbtc-to-sbtc-swap u1000)
+(contract-call? .xbtc-sbtc-swap deposit-xbtc u1000)
+```
+
+#### Withdraw xBTC (burn IOUs)
+
+```clarity
+(contract-call? .xbtc-sbtc-swap withdraw-xbtc u1000)
+```
+
+#### Claim sBTC (burn IOUs for sBTC)
+
+```clarity
+(contract-call? .xbtc-sbtc-swap claim-sbtc)
 ```
 
 #### Withdraw Excess sBTC
-
-After swaps have reduced the liquid xBTC supply, withdraw the excess:
 
 ```clarity
 (contract-call? .xbtc-sbtc-swap withdraw-excess-sbtc)
 ```
 
-#### Enroll in Staking
-
-Enable the contract's sBTC to generate stacking rewards:
+#### Initialize Custodian (on deploy)
 
 ```clarity
-(contract-call? .xbtc-sbtc-swap enroll .my-staking-contract (some 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.reward-receiver))
+(contract-call? .xbtc-sbtc-swap initialize 'SP...)
+```
+
+#### Send contract-held xBTC to custodian
+
+```clarity
+(contract-call? .xbtc-sbtc-swap init-unwrap)
+```
+
 ```
 
 ## Security Considerations
 
 - This is a **one-way swap** - sBTC cannot be swapped back to xBTC through this contract
-- The contract must be pre-funded with sufficient sBTC by the custodian
 - Users must have sufficient xBTC balance before calling the swap function
-- xBTC tokens are not automatically burned; the custodian must burn them separately

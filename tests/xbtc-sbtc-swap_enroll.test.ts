@@ -13,7 +13,7 @@ describe("xBTC-sBTC Swap Contract Enroll Tests", () => {
   });
 
   test("that user can enroll to dual stacking", () => {
-    // Fund the swap contract with more sBTC than xBTC supply
+    // Fund the swap contract with some sBTC
     let response = simnet.callPublicFn(
       "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
       "transfer",
@@ -33,7 +33,7 @@ describe("xBTC-sBTC Swap Contract Enroll Tests", () => {
       "enroll",
       [
         Cl.principal(
-          "SP1HFCRKEJ8BYW4D0E3FAWHFDX8A25PPAA83HWWZ9.dual-stacking-v1"
+          "SP1HFCRKEJ8BYW4D0E3FAWHFDX8A25PPAA83HWWZ9.dual-stacking-v2_0_4"
         ),
         Cl.none(),
       ],
@@ -51,12 +51,12 @@ describe("xBTC-sBTC Swap Contract Enroll Tests", () => {
   });
 
   test("that user can't enroll to dual stacking if low balance", () => {
-    // Fund the swap contract with more sBTC than xBTC supply
+    // Fund the swap contract with less sbtc than threshold
     let response = simnet.callPublicFn(
       "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
       "transfer",
       [
-        Cl.uint(1), // contract has already some sBTC
+        Cl.uint(1),
         Cl.principal(deployer),
         Cl.principal(`${deployer}.xbtc-sbtc-swap`),
         Cl.none(),
@@ -71,7 +71,7 @@ describe("xBTC-sBTC Swap Contract Enroll Tests", () => {
       "enroll",
       [
         Cl.principal(
-          "SP1HFCRKEJ8BYW4D0E3FAWHFDX8A25PPAA83HWWZ9.dual-stacking-v1"
+          "SP1HFCRKEJ8BYW4D0E3FAWHFDX8A25PPAA83HWWZ9.dual-stacking-v2_0_4"
         ),
         Cl.none(),
       ],

@@ -1,39 +1,110 @@
 ;; xbtc to sbtc one-way swap
 ;; swaps xbtc tokens for sbtc tokens 1:1
 
-;; 1. Custodian transfers backing Bitocin as sBTC to this contract
-;; 2. Users call xbtc-to-sbtc-swap, receive sBTC and send xBTC to this contract
-;; 3. Custodian can burn xBTC in this contract
+;; 1. Users deposit xBTC and receives an IOU tokens
+;; 2. Custodian receives xBTC every 2 weeks (in sync with stacking cycles just because)
+;; 3. Custodian sends BTC to sBTC bridge deposit address
+;; 4. Users claim their sBTC in exchange for IOU tokens
 
-(define-public (xbtc-to-sbtc-swap (amount uint))
-  (let (
-      (user-xbtc-balance (get-xbtc-balance tx-sender))
-      (contract-sbtc-balance (get-sbtc-balance current-contract))
-    )
-    (asserts! (>= user-xbtc-balance amount) (err u500))
-    (asserts! (>= contract-sbtc-balance amount) (err u501))
-    (try! (transfer-sbtc-to amount tx-sender))
-    (try! (burn-xbtc amount))
-    (ok true)
-  )
-)
+(define-constant err-unauthorized (err u401))
+(define-constant err-forbidden (err u403))
+(define-constant err-not-initialized (err u510))
+(define-constant err-not-enough-xbtc (err u511))
+(define-constant err-not-enough-sbtc (err u512))
+(define-constant err-not-enough-swapping-xbtc (err u513))
+(define-constant err-no-excess-sbtc (err u514))
+(define-constant deployer tx-sender)
 
-;; allows to withdraw sBTC that is not backing any xBTC to the xbtc-swap smart wallet
+;; allows to withdraw sBTC that is not backed by swapping-xbtc to the xbtc-swap smart wallet
 (define-constant excess-sbtc-receiver 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.xbtc-swap-wallet)
+
+(define-data-var custodian (optional principal) none)
 
 (define-public (withdraw-excess-sbtc)
   (let (
       (sbtc-contract-balance (get-sbtc-balance current-contract))
-      (xbtc-supply (unwrap-panic (contract-call? 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
-        get-total-supply
-      )))
-      (xbtc-contract-balance (get-xbtc-balance current-contract))
-      (liquid-xbtc (- xbtc-supply xbtc-contract-balance))
+      (swapping-xbtc-supply (unwrap-panic (contract-call? .swapping-xbtc get-total-supply)))
     )
-    (asserts! (> sbtc-contract-balance liquid-xbtc) (err u502))
-    (let ((excess-sbtc (- sbtc-contract-balance liquid-xbtc)))
+    (asserts! (> sbtc-contract-balance swapping-xbtc-supply) err-no-excess-sbtc)
+    (let ((excess-sbtc (- sbtc-contract-balance swapping-xbtc-supply)))
       (transfer-sbtc-to excess-sbtc excess-sbtc-receiver)
     )
+  )
+)
+
+(define-public (deposit-xbtc (amount uint))
+  (let ((user tx-sender))
+    (try! (contract-call? 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
+      transfer amount user current-contract none
+    ))
+    (try! (as-contract? () (try! (contract-call? .swapping-xbtc mint amount user))))
+    (ok true)
+  )
+)
+
+(define-public (withdraw-xbtc (amount uint))
+  (let (
+      (user tx-sender)
+      (balance (unwrap-panic (contract-call? .swapping-xbtc get-balance tx-sender)))
+      (xbtc-balance (get-xbtc-balance current-contract))
+    )
+    (asserts! (>= balance amount) err-not-enough-swapping-xbtc)
+    (asserts! (>= xbtc-balance amount) err-not-enough-xbtc)
+    (try! (as-contract?
+      ((with-ft 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
+        "wrapped-bitcoin" amount
+      ))
+      (begin
+        (try! (contract-call? .swapping-xbtc burn amount user))
+        (try! (contract-call?
+          'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin transfer
+          amount current-contract user none
+        ))
+      )))
+    (ok true)
+  )
+)
+
+(define-public (init-unwrap)
+  (let ((balance (get-xbtc-balance current-contract)))
+    ;; send all xbtc to custodian
+    (try! (as-contract?
+      ((with-ft 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
+        "wrapped-bitcoin" balance
+      ))
+      (try! (contract-call? 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
+        transfer balance current-contract
+        (unwrap! (var-get custodian) err-not-initialized) none
+      ))
+    ))
+    (ok true)
+  )
+)
+
+(define-public (claim-sbtc)
+  (let (
+      (user tx-sender)
+      (balance (unwrap-panic (contract-call? .swapping-xbtc get-balance user)))
+      (sbtc-balance (get-sbtc-balance current-contract))
+      (amount (if (< balance sbtc-balance)
+        balance
+        sbtc-balance
+      ))
+    )
+    ;; assert amount <= balance
+    (asserts! (> amount u0) err-not-enough-xbtc)
+    (try! (as-contract? () (try! (contract-call? .swapping-xbtc burn amount user))))
+    (try! (transfer-sbtc-to amount user))
+    (ok true)
+  )
+)
+
+(define-public (initialize (custodian-address principal))
+  (begin
+    (asserts! (is-eq tx-sender deployer) err-unauthorized)
+    (asserts! (is-none (var-get custodian)) err-forbidden)
+    (var-set custodian (some custodian-address))
+    (ok true)
   )
 )
 
@@ -54,19 +125,16 @@
   )
 )
 
-;; burns xbtc by transferring to the wrapped bitcoin to this contract
-(define-private (burn-xbtc (amount uint))
-  (contract-call? 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
-    transfer amount tx-sender current-contract none
-  )
-)
-
 ;; read-only functions
 
 (define-read-only (get-xbtc-balance (user principal))
   (unwrap-panic (contract-call? 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
     get-balance user
   ))
+)
+
+(define-read-only (get-swapping-xbtc-balance (user principal))
+  (unwrap-panic (contract-call? .swapping-xbtc get-balance user))
 )
 
 (define-read-only (get-sbtc-balance (user principal))
@@ -91,3 +159,5 @@
   )
   (as-contract? () (try! (contract-call? enroll-contract enroll receiver)))
 )
+
+(try! (contract-call? .swapping-xbtc set-swap-contract current-contract))

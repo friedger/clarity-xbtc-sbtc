@@ -31,13 +31,21 @@
                         <span id="xbtc-balance" class="balance-value">-</span>
                     </div>
                     <div class="balance-item">
+                        <label>Your SWXBTC (IOU) Balance:</label>
+                        <span id="iou-balance" class="balance-value">-</span>
+                    </div>
+                    <div class="balance-item">
+                        <label>Contract xBTC Balance:</label>
+                        <span id="contract-xbtc-balance" class="balance-value">-</span>
+                    </div>
+                    <div class="balance-item">
                         <label>Contract sBTC Balance:</label>
                         <span id="sbtc-balance" class="balance-value">-</span>
                     </div>
                 </div>
 
                 <div class="swap-form">
-                    <label for="swap-amount">Amount to Swap:</label>
+                    <label for="swap-amount">Amount (xBTC):</label>
                     <div class="input-group">
                         <input 
                             type="number" 
@@ -48,15 +56,28 @@
                         >
                         <span class="input-suffix">xBTC</span>
                     </div>
-                    <p class="helper-text">You will receive the same amount in sBTC</p>
-                    
-                    <button id="swap-btn" class="btn btn-primary btn-large">
-                        Swap xBTC → sBTC
-                    </button>
+                    <p class="helper-text">This is a two‑step process: 1) Deposit xBTC to mint SWXBTC, 2) Claim sBTC by burning SWXBTC.</p>
+
+                    <div class="action-buttons">
+                        <button id="deposit-btn" class="btn btn-primary btn-large">
+                            Deposit xBTC (mint SWXBTC)
+                        </button>
+                        <button id="claim-btn" class="btn btn-primary btn-large">
+                            Claim sBTC (burn SWXBTC)
+                        </button>
+                    </div>
                 </div>
 
                 <button id="refresh-balances-btn" class="btn btn-secondary">
                     🔄 Refresh Balances
+                </button>
+
+                <button id="withdraw-btn" class="btn btn-secondary">
+                    Withdraw xBTC (burn SWXBTC)
+                </button>
+
+                <button id="init-unwrap-btn" class="btn btn-secondary">
+                    Init Unwrap (custodian)
                 </button>
             </div>
         </div>
@@ -69,7 +90,6 @@
                 <li>This is a <strong>one-way swap</strong> - you cannot swap sBTC back to xBTC</li>
                 <li>The swap ratio is <strong>1:1</strong> (1 xBTC = 1 sBTC)</li>
                 <li>Make sure you have sufficient xBTC balance</li>
-                <li>The contract must have sufficient sBTC to complete the swap</li>
                 <li>Transaction fees apply (paid in STX)</li>
             </ul>
         </div>
