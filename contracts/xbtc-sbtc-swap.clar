@@ -10,9 +10,8 @@
 (define-constant err-forbidden (err u403))
 (define-constant err-not-initialized (err u510))
 (define-constant err-not-enough-xbtc (err u511))
-(define-constant err-not-enough-sbtc (err u512))
-(define-constant err-not-enough-swapping-xbtc (err u513))
-(define-constant err-no-excess-sbtc (err u514))
+(define-constant err-not-enough-swapping-xbtc (err u512))
+(define-constant err-no-excess-sbtc (err u513))
 (define-constant deployer tx-sender)
 
 ;; allows to withdraw sBTC that is not backed by swapping-xbtc to the xbtc-swap smart wallet
@@ -23,7 +22,7 @@
 (define-public (withdraw-excess-sbtc)
   (let (
       (sbtc-contract-balance (get-sbtc-balance current-contract))
-      (swapping-xbtc-supply (unwrap-panic (contract-call? .swapping-xbtc get-total-supply)))
+      (swapping-xbtc-supply (get-swapping-xbtc-supply))
     )
     (asserts! (> sbtc-contract-balance swapping-xbtc-supply) err-no-excess-sbtc)
     (let ((excess-sbtc (- sbtc-contract-balance swapping-xbtc-supply)))
@@ -45,7 +44,7 @@
 (define-public (withdraw-xbtc (amount uint))
   (let (
       (user tx-sender)
-      (balance (unwrap-panic (contract-call? .swapping-xbtc get-balance tx-sender)))
+      (balance (get-swapping-xbtc-balance user))
       (xbtc-balance (get-xbtc-balance current-contract))
     )
     (asserts! (>= balance amount) err-not-enough-swapping-xbtc)
@@ -81,17 +80,18 @@
   )
 )
 
+;; Claim as much as possible sBTC in exchange for swapping xBTC.
+;; Only fails if 0 sBTC available.
 (define-public (claim-sbtc)
   (let (
       (user tx-sender)
-      (balance (unwrap-panic (contract-call? .swapping-xbtc get-balance user)))
+      (balance (get-swapping-xbtc-balance user))
       (sbtc-balance (get-sbtc-balance current-contract))
       (amount (if (< balance sbtc-balance)
         balance
         sbtc-balance
       ))
     )
-    ;; assert amount <= balance
     (asserts! (> amount u0) err-not-enough-xbtc)
     (try! (as-contract? () (try! (contract-call? .swapping-xbtc burn amount user))))
     (try! (transfer-sbtc-to amount user))
@@ -141,6 +141,10 @@
   (unwrap-panic (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token
     get-balance user
   ))
+)
+
+(define-read-only (get-swapping-xbtc-supply)
+  (unwrap-panic (contract-call? .swapping-xbtc get-total-supply))
 )
 
 ;; enrollment of dual stacking

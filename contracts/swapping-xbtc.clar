@@ -1,6 +1,5 @@
 (define-constant err-unauthorized (err u401))
 (define-constant err-forbidden (err u403))
-(define-constant err-too-much (err u500))
 
 (define-fungible-token swapping-xbtc)
 

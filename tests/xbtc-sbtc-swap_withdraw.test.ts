@@ -8,6 +8,8 @@ import {
   init,
   initalBalance,
 } from "./utils";
+import { typedCallPublicFn, typedCallReadOnlyFn } from "clarity-abitype/clarinet-sdk";
+import { abiXbtcSbtcSwap } from "./abis/abi-xbtc-sbtc-swap";
 
 const accounts = simnet.getAccounts();
 const deployer = accounts.get("deployer")!;
@@ -24,13 +26,16 @@ describe("xBTC-sBTC Swap Contract Withdrawal Tests", () => {
     const excessSbtc = 3333;
 
     // create swapping-xbtc supply
-    const depositResponse = simnet.callPublicFn(
-          "xbtc-sbtc-swap",
-          "deposit-xbtc",
-          [Cl.uint(amount)],
-          wallet1,
-        );
+    const depositResponse = typedCallPublicFn({
+      simnet,
+      abi: abiXbtcSbtcSwap as any,
+      contract: "xbtc-sbtc-swap",
+      functionName: "deposit-xbtc",
+      functionArgs: [amount],
+      sender: wallet1,
+    });
 
+    expect(depositResponse.result).toEqual({ok: true});
     // Fund the swap contract with more sBTC than swapping-xBTC supply
     let response = simnet.callPublicFn(
       "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
@@ -41,7 +46,7 @@ describe("xBTC-sBTC Swap Contract Withdrawal Tests", () => {
         Cl.principal(`${deployer}.xbtc-sbtc-swap`),
         Cl.none(),
       ],
-      deployer
+      deployer,
     );
 
     expect(response.result).toBeOk(Cl.bool(true));
@@ -50,13 +55,13 @@ describe("xBTC-sBTC Swap Contract Withdrawal Tests", () => {
       "xbtc-sbtc-swap",
       "withdraw-excess-sbtc",
       [],
-      wallet1
+      wallet1,
     );
 
     expect(response.result).toBeOk(Cl.bool(true));
     expect(response.events).toHaveLength(1);
 
-    const expectedExcessAmount =excessSbtc - amount
+    const expectedExcessAmount = excessSbtc - amount;
 
     expectSbtcTransfer(response.events[0], {
       amount: expectedExcessAmount.toString(),
@@ -65,19 +70,20 @@ describe("xBTC-sBTC Swap Contract Withdrawal Tests", () => {
     });
   });
 
-
   test("that withdrawal fails when no excess sBTC exists", () => {
     // initial setup has no excess sBTC
 
-    const response = simnet.callPublicFn(
-      "xbtc-sbtc-swap",
-      "withdraw-excess-sbtc",
-      [],
-      wallet1
-    );
+    const response = typedCallPublicFn({
+      simnet,
+      abi: abiXbtcSbtcSwap as any,
+      contract: "xbtc-sbtc-swap",
+      functionName: "withdraw-excess-sbtc",
+      functionArgs: [],
+      sender: wallet1,
+    });
 
     // Should fail with error u514 (no excess)
-    expect(response.result).toBeErr(Cl.uint(514));
+    expect(response.result).toEqual({error: 513n});
   });
 
   test("that anyone can call withdraw-excess-sbtc", () => {
@@ -92,18 +98,20 @@ describe("xBTC-sBTC Swap Contract Withdrawal Tests", () => {
         Cl.principal(`${deployer}.xbtc-sbtc-swap`),
         Cl.none(),
       ],
-      deployer
+      deployer,
     );
     expect(response.result).toBeOk(Cl.bool(true));
 
     // wallet2 (random user) can trigger withdrawal
-    response = simnet.callPublicFn(
-      "xbtc-sbtc-swap",
-      "withdraw-excess-sbtc",
-      [],
-      wallet2
-    );
-    expect(response.result).toBeOk(Cl.bool(true));
+    response = typedCallPublicFn({
+      simnet,
+      abi: abiXbtcSbtcSwap as any,
+      contract: "xbtc-sbtc-swap",
+      functionName: "withdraw-excess-sbtc",
+      functionArgs: [],
+      sender: wallet2,
+    });
+    expect(response.result).toEqual({ok: true});
   });
 
   test("that excess sBTC is sent to endowment address not caller", () => {
@@ -118,7 +126,7 @@ describe("xBTC-sBTC Swap Contract Withdrawal Tests", () => {
         Cl.principal(`${deployer}.xbtc-sbtc-swap`),
         Cl.none(),
       ],
-      deployer
+      deployer,
     );
     expect(response.result).toBeOk(Cl.bool(true));
 
@@ -126,23 +134,27 @@ describe("xBTC-sBTC Swap Contract Withdrawal Tests", () => {
     expectSbtcBalance(wallet1).toBeUint(wallet1SbtcBefore);
 
     // wallet1 calls withdraw
-    response = simnet.callPublicFn(
-      "xbtc-sbtc-swap",
-      "withdraw-excess-sbtc",
-      [],
-      wallet1
-    );
-    expect(response.result).toBeOk(Cl.bool(true));
+    response = typedCallPublicFn({
+      simnet,
+      abi: abiXbtcSbtcSwap as any,
+      contract: "xbtc-sbtc-swap",
+      functionName: "withdraw-excess-sbtc",
+      functionArgs: [],
+      sender: wallet1,
+    });
+    expect(response.result).toEqual({ok: true});
 
     // wallet1's sBTC balance should be unchanged (funds go to endowment)
-    const wallet1SbtcAfter = simnet.callReadOnlyFn(
-      "xbtc-sbtc-swap",
-      "get-sbtc-balance",
-      [Cl.principal(wallet1)],
-      wallet1
-    ).result;
+    const wallet1SbtcAfter = typedCallReadOnlyFn({
+      simnet,
+      abi: abiXbtcSbtcSwap as any,
+      contract: "xbtc-sbtc-swap",
+      functionName: "get-sbtc-balance",
+      functionArgs: [wallet1],
+      sender: wallet1,
+    }).result;
 
-    expect(wallet1SbtcAfter).toBeUint(wallet1SbtcBefore);
+    expect(wallet1SbtcAfter).toEqual(BigInt(wallet1SbtcBefore));
   });
 
   test("that second withdrawal fails after excess already withdrawn", () => {
@@ -157,7 +169,7 @@ describe("xBTC-sBTC Swap Contract Withdrawal Tests", () => {
         Cl.principal(`${deployer}.xbtc-sbtc-swap`),
         Cl.none(),
       ],
-      deployer
+      deployer,
     );
     expect(response.result).toBeOk(Cl.bool(true));
 
@@ -166,7 +178,7 @@ describe("xBTC-sBTC Swap Contract Withdrawal Tests", () => {
       "xbtc-sbtc-swap",
       "withdraw-excess-sbtc",
       [],
-      wallet1
+      wallet1,
     );
     expect(response.result).toBeOk(Cl.bool(true));
 
@@ -175,8 +187,8 @@ describe("xBTC-sBTC Swap Contract Withdrawal Tests", () => {
       "xbtc-sbtc-swap",
       "withdraw-excess-sbtc",
       [],
-      wallet2
+      wallet2,
     );
-    expect(response.result).toBeErr(Cl.uint(514));
+    expect(response.result).toBeErr(Cl.uint(513));
   });
 });

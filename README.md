@@ -24,7 +24,7 @@ This project is composed of two contracts:
 
 - **xBTC** (Wrapped Bitcoin): `SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin`
 - **sBTC**: `SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token`
-- **IOU (swapping-xbtc)**: `SWXBTC` fungible token, implemented in `swapping-xbtc.clar`
+- **SWXBTC (swapping-xbtc)**: IOU fungible token, implemented in `swapping-xbtc.clar`
 
 ---
 
@@ -197,9 +197,8 @@ Returns the sBTC balance for a given principal.
 | `u403` | Forbidden (already initialized) |
 | `u510` | Not initialized (custodian missing) |
 | `u511` | Not enough xBTC in contract |
-| `u512` | Not enough sBTC in contract |
-| `u513` | Not enough `swapping-xbtc` balance |
-| `u514` | No excess sBTC to withdraw |
+| `u512` | Not enough `swapping-xbtc` balance |
+| `u513` | No excess sBTC to withdraw |
 
 ---
 

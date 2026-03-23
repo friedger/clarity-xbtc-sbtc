@@ -1,6 +1,8 @@
 import { Cl } from "@stacks/transactions";
 import { beforeEach, describe, expect, test } from "vitest";
 import { init, initalBalance } from "./utils";
+import { typedCallPublicFn } from "clarity-abitype/clarinet-sdk";
+import { abiXbtcSbtcSwap } from "./abis/abi-xbtc-sbtc-swap";
 
 const accounts = simnet.getAccounts();
 const deployer = accounts.get("deployer")!;
@@ -23,30 +25,30 @@ describe("xBTC-sBTC Swap Contract Enroll Tests", () => {
         Cl.principal(`${deployer}.xbtc-sbtc-swap`),
         Cl.none(),
       ],
-      deployer
+      deployer,
     );
 
     expect(response.result).toBeOk(Cl.bool(true));
 
-    response = simnet.callPublicFn(
-      "xbtc-sbtc-swap",
-      "enroll",
-      [
-        Cl.principal(
-          "SP1HFCRKEJ8BYW4D0E3FAWHFDX8A25PPAA83HWWZ9.dual-stacking-v2_0_4"
-        ),
-        Cl.none(),
+    response = typedCallPublicFn({
+      simnet,
+      abi: abiXbtcSbtcSwap as any,
+      contract: "xbtc-sbtc-swap",
+      functionName: "enroll",
+      functionArgs: [
+        "SP1HFCRKEJ8BYW4D0E3FAWHFDX8A25PPAA83HWWZ9.dual-stacking-v2_0_4",
+        undefined,
       ],
-      wallet1
-    );
+      sender: wallet1,
+    });
 
-    expect(response.result).toBeOk(Cl.bool(true));
+    expect(response.result).toEqual({ok: true});
     expect(response.events).toHaveLength(1);
 
     const enrollEvent = response.events[0];
     expect(enrollEvent.event).toBe("print_event");
     expect(enrollEvent.data.value.value["enrolled-address"].value).toBe(
-      "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.xbtc-sbtc-swap"
+      "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.xbtc-sbtc-swap",
     );
   });
 
@@ -61,23 +63,23 @@ describe("xBTC-sBTC Swap Contract Enroll Tests", () => {
         Cl.principal(`${deployer}.xbtc-sbtc-swap`),
         Cl.none(),
       ],
-      deployer
+      deployer,
     );
 
     expect(response.result).toBeOk(Cl.bool(true));
 
-    response = simnet.callPublicFn(
-      "xbtc-sbtc-swap",
-      "enroll",
-      [
-        Cl.principal(
-          "SP1HFCRKEJ8BYW4D0E3FAWHFDX8A25PPAA83HWWZ9.dual-stacking-v2_0_4"
-        ),
-        Cl.none(),
+    response = typedCallPublicFn({
+      simnet,
+      abi: abiXbtcSbtcSwap as any,
+      contract: "xbtc-sbtc-swap",
+      functionName: "enroll",
+      functionArgs: [
+        "SP1HFCRKEJ8BYW4D0E3FAWHFDX8A25PPAA83HWWZ9.dual-stacking-v2_0_4",
+        undefined,
       ],
-      wallet1
-    );
+      sender: wallet1,
+    });
 
-    expect(response.result).toBeErr(Cl.uint(104));
+    expect(response.result).toEqual({ error: 104n });
   });
 });

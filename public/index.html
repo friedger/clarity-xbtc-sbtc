@@ -11,6 +11,11 @@
         <header>
             <h1>🔄 xBTC to sBTC Swap</h1>
             <p class="subtitle">Swap your xBTC tokens for sBTC at a 1:1 ratio</p>
+            <ol class="subtitle-list">
+                <li>Deposit xBTC into the contract and receive swapping xBTC (SWXBTC).</li>
+                <li>xBTC is converted to sBTC by the custodian.</li>
+                <li>Claim your sBTC by burning swapping xBTC (SWXBTC).</li>
+            </ol>
         </header>
 
         <div class="card">
@@ -72,13 +77,14 @@
                     🔄 Refresh Balances
                 </button>
 
-                <button id="withdraw-btn" class="btn btn-secondary">
-                    Withdraw xBTC (burn SWXBTC)
-                </button>
-
-                <button id="init-unwrap-btn" class="btn btn-secondary">
-                    Init Unwrap (custodian)
-                </button>
+                <div class="action-buttons">
+                    <button id="withdraw-btn" class="btn btn-secondary btn-large">
+                        Withdraw xBTC (burn SWXBTC)
+                    </button>
+                    <button id="init-unwrap-btn" class="btn btn-secondary btn-large">
+                        Init Unwrap (custodian only)
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -89,6 +95,7 @@
             <ul>
                 <li>This is a <strong>one-way swap</strong> - you cannot swap sBTC back to xBTC</li>
                 <li>The swap ratio is <strong>1:1</strong> (1 xBTC = 1 sBTC)</li>
+                <li>The swap is a two step process: first you deposit xBTC to mint SWXBTC, once, xBTC have been unwrapped by custodian, then you claim sBTC by burning SWXBTC</li>
                 <li>Make sure you have sufficient xBTC balance</li>
                 <li>Transaction fees apply (paid in STX)</li>
             </ul>
