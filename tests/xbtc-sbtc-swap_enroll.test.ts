@@ -1,8 +1,8 @@
-import { Cl } from "@stacks/transactions";
-import { beforeEach, describe, expect, test } from "vitest";
-import { init, initalBalance } from "./utils";
 import { typedCallPublicFn } from "clarity-abitype/clarinet-sdk";
+import { beforeEach, describe, expect, test } from "vitest";
+import { abiSbtcToken } from "./abis/abi-sbtc-token";
 import { abiXbtcSbtcSwap } from "./abis/abi-xbtc-sbtc-swap";
+import { init, initalBalance } from "./utils";
 
 const accounts = simnet.getAccounts();
 const deployer = accounts.get("deployer")!;
@@ -16,66 +16,65 @@ describe("xBTC-sBTC Swap Contract Enroll Tests", () => {
 
   test("that user can enroll to dual stacking", () => {
     // Fund the swap contract with some sBTC
-    let response = simnet.callPublicFn(
-      "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
-      "transfer",
-      [
-        Cl.uint(initalBalance.wallet1Xbtc), // contract has already some sBTC
-        Cl.principal(deployer),
-        Cl.principal(`${deployer}.xbtc-sbtc-swap`),
-        Cl.none(),
-      ],
-      deployer,
-    );
-
-    expect(response.result).toBeOk(Cl.bool(true));
-
-    response = typedCallPublicFn({
+    let responseFund = typedCallPublicFn({
       simnet,
-      abi: abiXbtcSbtcSwap as any,
+      abi: abiSbtcToken,
+      contract: "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
+      functionName: "transfer",
+      functionArgs: [
+        BigInt(initalBalance.wallet1Sbtc),
+        deployer,
+        `${deployer}.xbtc-sbtc-swap`,
+        null,
+      ],
+      sender: deployer,
+    });
+
+    expect(responseFund.result).toEqual({ ok: true });
+
+    const response = typedCallPublicFn({
+      simnet,
+      abi: abiXbtcSbtcSwap,
       contract: "xbtc-sbtc-swap",
       functionName: "enroll",
       functionArgs: [
         "SP1HFCRKEJ8BYW4D0E3FAWHFDX8A25PPAA83HWWZ9.dual-stacking-v2_0_4",
-        undefined,
+        null,
       ],
       sender: wallet1,
     });
 
-    expect(response.result).toEqual({ok: true});
+    expect(response.result).toEqual({ ok: true });
     expect(response.events).toHaveLength(1);
 
     const enrollEvent = response.events[0];
     expect(enrollEvent.event).toBe("print_event");
-    expect(enrollEvent.data.value.value["enrolled-address"].value).toBe(
+    expect((enrollEvent.data.value as any).value["enrolled-address"].value).toEqual(
       "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.xbtc-sbtc-swap",
     );
   });
 
   test("that user can't enroll to dual stacking if low balance", () => {
     // Fund the swap contract with less sbtc than threshold
-    let response = simnet.callPublicFn(
-      "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
-      "transfer",
-      [
-        Cl.uint(1),
-        Cl.principal(deployer),
-        Cl.principal(`${deployer}.xbtc-sbtc-swap`),
-        Cl.none(),
-      ],
-      deployer,
-    );
-
-    expect(response.result).toBeOk(Cl.bool(true));
-
-    response = typedCallPublicFn({
+    let responseFund = typedCallPublicFn({
       simnet,
-      abi: abiXbtcSbtcSwap as any,
+      abi: abiSbtcToken,
+      contract: "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
+      functionName: "transfer",
+      functionArgs: [1n, deployer, `${deployer}.xbtc-sbtc-swap`, null],
+      sender: deployer,
+    });
+
+    expect(responseFund.result).toEqual({ ok: true });
+
+    const response = typedCallPublicFn({
+      simnet,
+      abi: abiXbtcSbtcSwap,
       contract: "xbtc-sbtc-swap",
       functionName: "enroll",
       functionArgs: [
         "SP1HFCRKEJ8BYW4D0E3FAWHFDX8A25PPAA83HWWZ9.dual-stacking-v2_0_4",
-        undefined,
+        null,
       ],
       sender: wallet1,
     });

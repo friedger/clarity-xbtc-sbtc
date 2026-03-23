@@ -19,18 +19,6 @@
 
 (define-data-var custodian (optional principal) none)
 
-(define-public (withdraw-excess-sbtc)
-  (let (
-      (sbtc-contract-balance (get-sbtc-balance current-contract))
-      (swapping-xbtc-supply (get-swapping-xbtc-supply))
-    )
-    (asserts! (> sbtc-contract-balance swapping-xbtc-supply) err-no-excess-sbtc)
-    (let ((excess-sbtc (- sbtc-contract-balance swapping-xbtc-supply)))
-      (transfer-sbtc-to excess-sbtc excess-sbtc-receiver)
-    )
-  )
-)
-
 (define-public (deposit-xbtc (amount uint))
   (let ((user tx-sender))
     (try! (contract-call? 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
@@ -108,6 +96,19 @@
     (asserts! (is-none (var-get custodian)) err-forbidden)
     (var-set custodian (some custodian-address))
     (ok true)
+  )
+)
+
+
+(define-public (withdraw-excess-sbtc)
+  (let (
+      (sbtc-contract-balance (get-sbtc-balance current-contract))
+      (swapping-xbtc-supply (get-swapping-xbtc-supply))
+    )
+    (asserts! (> sbtc-contract-balance swapping-xbtc-supply) err-no-excess-sbtc)
+    (let ((excess-sbtc (- sbtc-contract-balance swapping-xbtc-supply)))
+      (transfer-sbtc-to excess-sbtc excess-sbtc-receiver)
+    )
   )
 )
 

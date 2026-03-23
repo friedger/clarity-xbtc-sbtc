@@ -1,16 +1,17 @@
 import { Cl } from "@stacks/transactions";
-import { beforeEach, describe, expect, test } from "vitest";
+import { expect } from "vitest";
 
 const accounts = simnet.getAccounts();
 const deployer = accounts.get("deployer")!;
 const wallet1 = accounts.get("wallet_1")!;
-const wallet2 = accounts.get("wallet_2")!;
+const wallet4 = accounts.get("wallet_4")!;
 const wallet3 = accounts.get("wallet_3")!;
 
 export const initalBalance = {
   wallet1Xbtc: 10_000,
   wallet1Sbtc: 10_00_000_000, // 10 sBTC
   wallet1SwappingXbtc: 0,
+  wallet4Xbtc: 20_000,
   contractXbtc: 0,
   contractSbtc: 5_000,
 };
@@ -47,6 +48,14 @@ export function init() {
     "SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin",
     "mint-tokens",
     [Cl.uint(initalBalance.wallet1Xbtc), Cl.principal(wallet1)],
+    deployer,
+  );
+
+   // mint xBTC to wallet4
+  simnet.callPublicFn(
+    "SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin",
+    "mint-tokens",
+    [Cl.uint(initalBalance.wallet4Xbtc), Cl.principal(wallet4)],
     deployer,
   );
 
@@ -139,36 +148,12 @@ export function depositUnwrapClaim(user: string, amount: number, fees: number) {
     },
   });
 
-  // contract received amount of xBTC
+  // verify contract received amount of xBTC
   expectXbtcBalance(`${deployer}.xbtc-sbtc-swap`).toBeUint(
     initalBalance.contractXbtc + amount,
   );
 
-  // contract sends xBTC to custodian
-  const unwrapResponse = simnet.callPublicFn(
-    ".xbtc-sbtc-swap",
-    "init-unwrap",
-    [],
-    deployer,
-  );
-  expect(unwrapResponse.result).toBeOk(Cl.bool(true));
-
-  // contract sends amount of xBTC
-  expectXbtcBalance(`${deployer}.xbtc-sbtc-swap`).toBeUint(
-    initalBalance.contractXbtc,
-  );
-  // custodian sends sBTC to contract
-  simnet.callPublicFn(
-    "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
-    "transfer",
-    [
-      Cl.uint(amount - fees), // transfer slightly less due to bridge fees
-      Cl.principal(deployer),
-      Cl.principal(`${deployer}.xbtc-sbtc-swap`),
-      Cl.none(),
-    ],
-    deployer,
-  );
+  unwrap(amount - fees);
 
   // user claims sBTC by burning swappingXBTC
   const claimResponse = simnet.callPublicFn(
@@ -179,4 +164,34 @@ export function depositUnwrapClaim(user: string, amount: number, fees: number) {
   );
 
   expect(claimResponse.result).toBeOk(Cl.bool(true));
+}
+
+export function unwrap(amount: number) {
+    // contract sends xBTC to custodian
+  const unwrapResponse = simnet.callPublicFn(
+    ".xbtc-sbtc-swap",
+    "init-unwrap",
+    [],
+    wallet3,
+  );
+  expect(unwrapResponse.result).toBeOk(Cl.bool(true));
+
+  // verify contract sends amount of xBTC
+  expectXbtcBalance(`${deployer}.xbtc-sbtc-swap`).toBeUint(
+    initalBalance.contractXbtc,
+  );
+  // custodian sends sBTC to contract
+  const sbtcTransferResponse = simnet.callPublicFn(
+    "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
+    "transfer",
+    [
+      Cl.uint(amount), // transfer slightly less due to bridge fees
+      Cl.principal(deployer),
+      Cl.principal(`${deployer}.xbtc-sbtc-swap`),
+      Cl.none(),
+    ],
+    deployer,
+  );
+
+  expect(sbtcTransferResponse.result).toBeOk(Cl.bool(true));
 }
