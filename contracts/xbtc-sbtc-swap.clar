@@ -65,15 +65,18 @@
 )
 
 (define-public (init-unwrap)
-  (let ((balance (get-xbtc-balance current-contract)))
+  (let (
+      (balance (get-xbtc-balance current-contract))
+      (custodian-user (unwrap! (var-get custodian) err-not-initialized))
+    )
+    (asserts! (is-eq tx-sender custodian-user) err-unauthorized)
     ;; send all xbtc to custodian
     (try! (as-contract?
       ((with-ft 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
         "wrapped-bitcoin" balance
       ))
       (try! (contract-call? 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
-        transfer balance current-contract
-        (unwrap! (var-get custodian) err-not-initialized) none
+        transfer balance current-contract custodian-user none
       ))
     ))
     (ok true)

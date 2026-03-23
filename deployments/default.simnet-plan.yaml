@@ -752,8 +752,8 @@ plan:
       path: contracts/swapping-xbtc.clar
       clarity-version: 4
     - transaction-type: emulated-contract-publish
-      contract-name: xbtc-sbtc-swap
+      contract-name: swapping-xbtc-init
       emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-      path: contracts/xbtc-sbtc-swap.clar
+      path: tests/contracts/swapping-xbtc-init.clar
       clarity-version: 4
     epoch: '3.3'

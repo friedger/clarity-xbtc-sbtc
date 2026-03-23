@@ -10,7 +10,10 @@
     "test:watch": "chokidar \"tests/**/*.ts\" \"contracts/**/*.clar\" -c \"npm run test:report\"",
     "dev": "vite public",
     "build": "vite build public",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "simulate": "npx tsx simulations/swap-and-excess.ts",
+    "rv:test": "rv . swapping-xbtc test",
+    "rv:invariant": "rv . xbtc-sbtc-swap invariant"
   },
   "author": "",
   "license": "ISC",

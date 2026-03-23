@@ -15,8 +15,8 @@ path = "contracts/swapping-xbtc.clar"
 clarity = "4"
 epoch = "3.3"
 
-[contracts.xbtc-sbtc-swap]
-path = "contracts/xbtc-sbtc-swap.clar"
+[contracts.swapping-xbtc-init]
+path = "tests/contracts/swapping-xbtc-init.clar"
 clarity = "4"
 epoch = "3.3"
 
