@@ -11,7 +11,7 @@
     "dev": "vite public",
     "build": "vite build public",
     "preview": "vite preview",
-    "simulate": "npx tsx simulations/swap-and-excess.ts",
+    "simulate": "npx tsx simulations/swap-and-excess-v3.ts",
     "rv:test": "rv . swapping-xbtc test",
     "rv:invariant": "rv . xbtc-sbtc-swap invariant",
     "coverage:genhtml": "genhtml lcov.info --branch-coverage -o coverage"
