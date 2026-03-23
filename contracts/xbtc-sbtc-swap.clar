@@ -24,7 +24,7 @@
     (try! (contract-call? 'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin
       transfer amount user current-contract none
     ))
-    (try! (as-contract? () (try! (contract-call? .swapping-xbtc mint amount user))))
+    (try! (as-contract? () (try! (contract-call? .swapping-xbtc-v3 mint amount user))))
     (ok true)
   )
 )
@@ -42,7 +42,7 @@
         "wrapped-bitcoin" amount
       ))
       (begin
-        (try! (contract-call? .swapping-xbtc burn amount user))
+        (try! (contract-call? .swapping-xbtc-v3 burn amount user))
         (try! (contract-call?
           'SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin transfer
           amount current-contract user none
@@ -84,7 +84,7 @@
       ))
     )
     (asserts! (> amount u0) err-not-enough-xbtc)
-    (try! (as-contract? () (try! (contract-call? .swapping-xbtc burn amount user))))
+    (try! (as-contract? () (try! (contract-call? .swapping-xbtc-v3 burn amount user))))
     (try! (transfer-sbtc-to amount user))
     (ok true)
   )
@@ -138,7 +138,7 @@
 )
 
 (define-read-only (get-swapping-xbtc-balance (user principal))
-  (unwrap-panic (contract-call? .swapping-xbtc get-balance user))
+  (unwrap-panic (contract-call? .swapping-xbtc-v3 get-balance user))
 )
 
 (define-read-only (get-sbtc-balance (user principal))
@@ -148,7 +148,7 @@
 )
 
 (define-read-only (get-swapping-xbtc-supply)
-  (unwrap-panic (contract-call? .swapping-xbtc get-total-supply))
+  (unwrap-panic (contract-call? .swapping-xbtc-v3 get-total-supply))
 )
 
 ;; enrollment of dual stacking
@@ -168,4 +168,4 @@
   (as-contract? () (try! (contract-call? enroll-contract enroll receiver)))
 )
 
-(try! (contract-call? .swapping-xbtc set-swap-contract current-contract))
+(try! (contract-call? .swapping-xbtc-v3 set-swap-contract current-contract))

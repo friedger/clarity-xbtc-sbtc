@@ -20,7 +20,7 @@ describe("ABI generation", () => {
   it("should generate ABI for all contracts", () => {
     const abi: Map<string, any> = simnet.getContractsInterfaces();
     // write interface to file
-    writeAbi(abi, "swapping-xbtc");
+    writeAbi(abi, "swapping-xbtc-v3");
     writeAbi(abi, "xbtc-sbtc-swap");
   });
 });

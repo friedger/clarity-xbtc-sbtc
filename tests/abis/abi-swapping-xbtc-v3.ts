@@ -1,4 +1,4 @@
-export const abiSwappingXbtc = {
+export const abiSwappingXbtcV3 = {
   "functions": [
     {
       "name": "is-swap-contract-calling",
