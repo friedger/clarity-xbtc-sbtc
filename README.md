@@ -59,7 +59,7 @@ Withdraws xBTC from the contract back to the caller by burning `swapping-xbtc` I
 **Returns:**
 - `(ok true)` on success
 - `(err u513)` if the caller has insufficient `swapping-xbtc` balance
-- `(err u511)` if the contract has insufficient xBTC to fulfill the withdraw, e.g. when unwrap was already initalized.
+- `(err u511)` if the contract has insufficient xBTC to fulfill the withdraw, e.g. when unwrap was already initialized.
 
 **Process:**
 1. Confirms the caller has at least `amount` `swapping-xbtc`.
