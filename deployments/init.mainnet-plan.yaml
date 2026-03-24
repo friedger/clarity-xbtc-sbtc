@@ -1,0 +1,16 @@
+id: 0
+name: Contract initialization
+network: mainnet
+stacks-node: https://api.mainnet.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332
+plan:
+  batches:
+  - id: 0
+    transactions:
+    - transaction-type: contract-call
+      contract-id: SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.xbtc-sbtc-swap-v3
+      method: initialize
+      parameters:
+      - "'SP123"
+      expected-sender: SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9
+      cost: 2000
