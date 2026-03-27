@@ -10,7 +10,7 @@ requirements = [
     {contract_id = "SP1HFCRKEJ8BYW4D0E3FAWHFDX8A25PPAA83HWWZ9.dual-stacking-v2_0_4"}
 ]
 
-[contracts.swapping-xbtc-v3]
+[contracts.swapping-xbtc-v4]
 path = "contracts/swapping-xbtc.clar"
 clarity = "4"
 epoch = "3.3"

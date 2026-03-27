@@ -95,7 +95,11 @@ export const abiXbtcSbtcSwap = {
       "access": "public",
       "args": [
         {
-          "name": "custodian-address",
+          "name": "xbtc-receiver",
+          "type": "principal"
+        },
+        {
+          "name": "operator",
           "type": "principal"
         }
       ],
@@ -224,6 +228,16 @@ export const abiXbtcSbtcSwap = {
       "access": "constant"
     },
     {
+      "name": "err-not-enough-tokens",
+      "type": {
+        "response": {
+          "ok": "none",
+          "error": "uint128"
+        }
+      },
+      "access": "constant"
+    },
+    {
       "name": "err-not-enough-xbtc",
       "type": {
         "response": {
@@ -260,6 +274,13 @@ export const abiXbtcSbtcSwap = {
     },
     {
       "name": "custodian",
+      "type": {
+        "optional": "principal"
+      },
+      "access": "variable"
+    },
+    {
+      "name": "custodian-operator",
       "type": {
         "optional": "principal"
       },

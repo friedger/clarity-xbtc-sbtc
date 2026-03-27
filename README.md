@@ -114,10 +114,10 @@ Withdraws sBTC that is not needed to back circulating `swapping-xbtc` IOUs.
 
 ### `initialize`
 
-Sets the custodian address that will receive xBTC during the unwrap flow.
+Sets the custodian address that will receive xBTC during the unwrap flow and the operator who can start the flow.
 
 ```clarity
-(initialize (custodian-address principal))
+(initialize (xbtc-receiver principal) (operator principal))
 ```
 
 **Returns:**
@@ -319,7 +319,7 @@ pnpm test
 #### Initialize Custodian (on deploy)
 
 ```clarity
-(contract-call? .xbtc-sbtc-swap initialize 'SP...)
+(contract-call? .xbtc-sbtc-swap initialize 'SP... 'SP...)
 ```
 
 #### Send contract-held xBTC to custodian

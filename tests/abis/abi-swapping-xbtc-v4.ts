@@ -1,4 +1,4 @@
-export const abiSwappingXbtcV3 = {
+export const abiSwappingXbtcV4 = {
   "functions": [
     {
       "name": "is-swap-contract-calling",
@@ -201,6 +201,11 @@ export const abiSwappingXbtcV3 = {
     }
   ],
   "variables": [
+    {
+      "name": "deployer",
+      "type": "principal",
+      "access": "constant"
+    },
     {
       "name": "err-forbidden",
       "type": {

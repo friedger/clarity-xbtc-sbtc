@@ -8,14 +8,14 @@ plan:
   - id: 0
     transactions:
     - transaction-type: contract-publish
-      contract-name: swapping-xbtc-v3
+      contract-name: swapping-xbtc-v4
       expected-sender: SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9
       cost: 846393
       path: contracts/swapping-xbtc.clar
       anchor-block-only: true
       clarity-version: 4
     - transaction-type: contract-publish
-      contract-name: xbtc-sbtc-swap-v3
+      contract-name: xbtc-sbtc-swap-v4
       expected-sender: SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9
       cost: 846981
       path: contracts/xbtc-sbtc-swap.clar

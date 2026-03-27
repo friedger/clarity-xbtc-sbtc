@@ -1,5 +1,6 @@
 (define-constant err-unauthorized (err u401))
 (define-constant err-forbidden (err u403))
+(define-constant deployer tx-sender)
 
 (define-fungible-token swapping-xbtc)
 
@@ -77,6 +78,7 @@
 ;; can be called only once
 (define-public (set-swap-contract (ctr principal))
   (begin
+    (asserts! (is-eq tx-sender deployer) err-unauthorized)
     (asserts! (is-none (var-get swap-contract)) err-forbidden)
     (var-set swap-contract (some ctr))
     (ok true)

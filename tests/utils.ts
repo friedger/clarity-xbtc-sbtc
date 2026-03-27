@@ -1,5 +1,10 @@
 import { Cl } from "@stacks/transactions";
+import {
+  typedCallPublicFn,
+  typedCallReadOnlyFn,
+} from "clarity-abitype/clarinet-sdk";
 import { expect } from "vitest";
+import { abiSbtcToken } from "./abis/abi-sbtc-token";
 
 const accounts = simnet.getAccounts();
 const deployer = accounts.get("deployer")!;
@@ -12,7 +17,7 @@ export const initalBalance = {
   wallet1Sbtc: 10_00_000_000, // 10 sBTC
   wallet1SwappingXbtc: 0,
   wallet4Xbtc: 20_000,
-  contractXbtc: 0,
+  wallet4Sbtc: 10_00_000_000, // 10 sBTC
   contractSbtc: 5_000,
 };
 
@@ -51,7 +56,7 @@ export function init() {
     deployer,
   );
 
-   // mint xBTC to wallet4
+  // mint xBTC to wallet4
   simnet.callPublicFn(
     "SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin",
     "mint-tokens",
@@ -63,7 +68,7 @@ export function init() {
   simnet.callPublicFn(
     "xbtc-sbtc-swap",
     "initialize",
-    [Cl.principal(wallet3)],
+    [Cl.principal(wallet3), Cl.principal(wallet3)],
     deployer,
   );
 }
@@ -125,7 +130,7 @@ export function expectSbtcTransfer(
   });
 }
 
-export function depositUnwrapClaim(user: string, amount: number, fees: number) {
+export function depositUnwrapClaim(user: string, amount: number | bigint, fees: number | bigint) {
   const response = simnet.callPublicFn(
     "xbtc-sbtc-swap",
     "deposit-xbtc",
@@ -149,11 +154,9 @@ export function depositUnwrapClaim(user: string, amount: number, fees: number) {
   });
 
   // verify contract received amount of xBTC
-  expectXbtcBalance(`${deployer}.xbtc-sbtc-swap`).toBeUint(
-    initalBalance.contractXbtc + amount,
-  );
+  expectXbtcBalance(`${deployer}.xbtc-sbtc-swap`).toBeUint(amount);
 
-  unwrap(amount - fees);
+  unwrap(amount, fees);
 
   // user claims sBTC by burning swappingXBTC
   const claimResponse = simnet.callPublicFn(
@@ -166,8 +169,8 @@ export function depositUnwrapClaim(user: string, amount: number, fees: number) {
   expect(claimResponse.result).toBeOk(Cl.bool(true));
 }
 
-export function unwrap(amount: number) {
-    // contract sends xBTC to custodian
+export function unwrap(amount: number | bigint, fees: number | bigint) {
+  // contract sends xBTC to custodian
   const unwrapResponse = simnet.callPublicFn(
     ".xbtc-sbtc-swap",
     "init-unwrap",
@@ -177,15 +180,27 @@ export function unwrap(amount: number) {
   expect(unwrapResponse.result).toBeOk(Cl.bool(true));
 
   // verify contract sends amount of xBTC
-  expectXbtcBalance(`${deployer}.xbtc-sbtc-swap`).toBeUint(
-    initalBalance.contractXbtc,
-  );
+  expectXbtcBalance(`${deployer}.xbtc-sbtc-swap`).toBeUint(0);
+  expect(unwrapResponse.events).toHaveLength(2);
+
+  const xbtcTransferEvent = unwrapResponse.events[1];
+  expect(xbtcTransferEvent).toMatchObject({
+    event: "ft_transfer_event",
+    data: {
+      amount: amount.toString(),
+      asset_identifier:
+        "SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin::wrapped-bitcoin",
+      recipient: "ST2JHG361ZXG51QTKY2NQCVBPPRRE2KZB1HR05NNC",
+      sender: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.xbtc-sbtc-swap",
+    },
+  });
+
   // custodian sends sBTC to contract
   const sbtcTransferResponse = simnet.callPublicFn(
     "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
     "transfer",
     [
-      Cl.uint(amount), // transfer slightly less due to bridge fees
+      Cl.uint(BigInt(amount) - BigInt(fees)), // transfer slightly less due to bridge fees
       Cl.principal(deployer),
       Cl.principal(`${deployer}.xbtc-sbtc-swap`),
       Cl.none(),
@@ -194,4 +209,31 @@ export function unwrap(amount: number) {
   );
 
   expect(sbtcTransferResponse.result).toBeOk(Cl.bool(true));
+}
+
+export function sendSbtcToContract(amount: bigint) {
+  const balanceBefore = typedCallReadOnlyFn({
+    simnet,
+    abi: abiSbtcToken,
+    contract: "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
+    functionName: "get-balance",
+    functionArgs: [deployer],
+    sender: deployer,
+  });
+
+  console.log("Balance before sending sBTC to contract:", balanceBefore.result);
+  const response = typedCallPublicFn({
+    simnet,
+    abi: abiSbtcToken,
+    contract: "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
+    functionName: "transfer",
+    functionArgs: [amount, deployer, `${deployer}.xbtc-sbtc-swap`, null],
+    sender: deployer,
+  });
+  expect(response.result).toEqual({ ok: true });
+
+  expectSbtcBalance(`${deployer}.xbtc-sbtc-swap`).toBeUint(BigInt(amount));
+  expectSbtcBalance(deployer).toBeUint(
+    (balanceBefore.result.ok || 0n) - BigInt(amount),
+  );
 }
